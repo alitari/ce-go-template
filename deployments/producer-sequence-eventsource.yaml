@@ -1,0 +1,22 @@
+apiVersion: sources.knative.dev/v1alpha2
+kind: ContainerSource
+metadata:
+  name: producer
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+        - image: docker.io/alitari/ce-go-template-producer
+          name: ce-go-template-producer
+          # env:
+          #   - name: K_SINK
+          #     value: 'http://mapper-sequence-kn-sequence-0-kn-channel.default.svc.cluster.local'
+  sink:
+    ref:
+      apiVersion: flows.knative.dev/v1
+      kind: Sequence
+      name: mapper-sequence
+  ceOverrides:
+    extensions:
+      sink: bound
