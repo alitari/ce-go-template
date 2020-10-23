@@ -1,15 +1,15 @@
-# process [CloudEvents] with golang templates
+# process [CloudEvent] with [go template]
 
-With the following 2 services you can produce and transform [CloudEvents] with the go-template syntax.
+With the following 2 services you can produce and transform a [CloudEvent] with the [go template] syntax.
 
-- **ce-go-template-producer**: This service creates new cloud events frequently and send them to an event sink. In knative it can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
-- **ce-go-template-mapper**: This service transforms an incoming CloudEvent to an destination CloudEvent. Depending whether an [event sink] is present, the new event is either:
+- **ce-go-template-producer**: This service creates new cloud events frequently and send them to an [event sink]. In [knative] it can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
+- **ce-go-template-mapper**: This service transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either:
    - sent to the sink ( *send mode*), or
    - is the payload of the http response (*reply mode*)
 
 ## usage
 
-In order to implement CloudEvent transformations you define a go-template to represent the CloudEvent as a JSON string. The payload is stored in attribute `data`, on the same level there are the [CloudEvents context attributes]. The mapper can access the input CloudEvent data with the same structure.
+In order to implement CloudEvent transformations you define a go-template representing the CloudEvent in JSON format. The payload is stored in attribute `data`, on the same level there are the [CloudEvents context attributes]. The mapper can access the input CloudEvent data with the same structure.
 
 ### example for a simple mapping
 
@@ -23,7 +23,7 @@ In order to implement CloudEvent transformations you define a go-template to rep
    "type":"{{ .type }}" }
 }
 ```
-This transformation keeps all data of the input CloudEvent except the id. The id is created through the [sprig function `uuidv4`](http://masterminds.github.io/sprig/uuid.html).
+This transformation keeps all data of the input CloudEvent except the id. The id is created with the [sprig function `uuidv4`](http://masterminds.github.io/sprig/uuid.html).
 
 
 ### configuration
@@ -32,7 +32,7 @@ This transformation keeps all data of the input CloudEvent except the id. The id
 | ------------ | ------------| ------- | -------| ---|
 | `CE_TEMPLATE` | go template representing the resulting CloudEvent as JSON string | see code [producer](cmd/producer/main.go), [mapper](cmd/mapper/main.go)  | :heavy_check_mark: | :heavy_check_mark: |
 | `VERBOSE` | logs details if `true` |`true`| :heavy_check_mark: | :heavy_check_mark: |
-| `K_SINK` | desination uri of the resulting CloudEvent |no | :heavy_check_mark: (mandatory)  | :heavy_check_mark: (empty for reply mode) |
+| `K_SINK` | destination uri of the outgoing CloudEvent |no | :heavy_check_mark: (mandatory)  | :heavy_check_mark: (empty for reply mode) |
 | `PERIOD` | duration between two CloudEvents  |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
 | `TIMEOUT` | duration for timeout when sending CloudEvent to sink |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
 
@@ -53,6 +53,7 @@ http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" 
 
 ```bash
 CE_TEMPLATE='{{ $people := .data.people }} {{ $adults := list }} {{ $children := list }} {{ range $people }} {{ $age := .age | atoi }} {{ if gt $age 17 }} {{ $adults = append $adults . }}{{ else }}{{ $children = append $children . }}{{ end }} {{ end }}{ "data": { "adults": {{ toJson $adults }}, "children": {{ toJson $children }} } , "datacontenttype":"application/json","id":"{{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' go run cmd/mapper/main.go
+
 http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" people:='[ { "name": "Bob", "age": "23" }, { "name": "John", "age": "17" } , {"name": "Bill", "age": "70"} ]'
 ```
 
@@ -76,8 +77,7 @@ http --print=Bhb POST localhost:8080 "content-type: application/json" "ce-specve
 ### producing random CloudEvents
 
 ```bash
-CE_TEMPLATE='
- {{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
+CE_TEMPLATE='{{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
 ```
 
 ## deployment options in knative
@@ -153,10 +153,11 @@ scripts/publish_image.sh producer
 scripts/publish_image.sh mapper
 ```
 
-[CloudEvents]: https://github.com/cloudevents/spec
+[CloudEvent]: https://github.com/cloudevents/spec
+[knative]: https://knative.dev/
 [CloudEvents spec]: https://github.com/cloudevents/spec/blob/v1.0/spec.md
 [CloudEvents context attributes]: https://github.com/cloudevents/spec/blob/v1.0/spec.md#context-attributes
-[go-template]: https://golang.org/pkg/text/template/
+[go template]: https://golang.org/pkg/text/template/
 [ContainerSource]: https://knative.dev/docs/eventing/sources/containersource/
 [Sinkbinding]: https://knative.dev/docs/eventing/sources/sinkbinding/
 [httpie]: https://httpie.org/
