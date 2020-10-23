@@ -80,7 +80,7 @@ http --print=Bhb POST localhost:8080 "content-type: application/json" "ce-specve
 CE_TEMPLATE='{{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
 ```
 
-## deployment options in knative
+## deployment options in [knative]
 
 ### event producer as container source
 
