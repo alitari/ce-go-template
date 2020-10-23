@@ -1,28 +1,62 @@
-# process cloudevents with golang templates
+# process [CloudEvents] with golang templates
 
-With the following 2 services you can produce and transform cloudevents with the go-template syntax in the knative environment.
+With the following 2 services you can produce and transform [CloudEvents] with the go-template syntax.
 
-- **ce-go-template-producer**: This service creates new cloud events frequently and send them to an event sink. In knative it can be applied as an event source using a `ContainerSource` or a `Sinkbinding` 
-- **ce-go-template-mapper**: This service transforms an incoming cloudevent to an destination cloudevent. Depending whether an event sink is present, the new event is either:
+- **ce-go-template-producer**: This service creates new cloud events frequently and send them to an event sink. In knative it can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
+- **ce-go-template-mapper**: This service transforms an incoming CloudEvent to an destination CloudEvent. Depending whether an [event sink] is present, the new event is either:
    - sent to the sink ( *send mode*), or
    - is the payload of the http response (*reply mode*)
 
 ## usage
 
-In order to implement cloudevent transformations you define a go-template as an environment variable.
+In order to implement CloudEvent transformations you define a go-template to represent the CloudEvent as a JSON string. The payload is stored in attribute `data`, on the same level there are the [CloudEvents context attributes]. The mapper can access the input CloudEvent data with the same structure.
 
-| Env variable | ce-go-template-producer | ce-go-template-mapper |
-| ------------ | ----------------------- | --------------------- |
-| ------------ | ----------------------- | --------------------- |
-| ------------ | ----------------------- | --------------------- |
+### example for a simple mapping
 
-[TODO]
+```txt
+{ 
+   "data": {{ toJson .data }},
+   "datacontenttype":"application/json",
+   "id":" {{ uuidv4 }}",
+   "source":"{{ .source }}",
+   "specversion":"{{ .specversion }}",
+   "type":"{{ .type }}" }
+}
+```
+This transformation keeps all data of the input CloudEvent except the id. The id is created through the [sprig function `uuidv4`](http://masterminds.github.io/sprig/uuid.html).
 
-## use cases
 
-For simple transformation tasks you can use a go-template as a runtime parameter instead of creating own code with build process and images etc.  As the go-template includes the [sprig functions] you can use built-in functionality for math, security/encryption, etc.
+### configuration
 
-### Encrypt secret parts of your event payload
+| Env variable | Description | Default | Producer | Mapper |
+| ------------ | ------------| ------- | -------| ---|
+| `CE_TEMPLATE` | go template representing the resulting CloudEvent as JSON string | see code [producer](cmd/producer/main.go), [mapper](cmd/mapper/main.go)  | :heavy_check_mark: | :heavy_check_mark: |
+| `VERBOSE` | logs details if `true` |`true`| :heavy_check_mark: | :heavy_check_mark: |
+| `K_SINK` | desination uri of the resulting CloudEvent |no | :heavy_check_mark: (mandatory)  | :heavy_check_mark: (empty for reply mode) |
+| `PERIOD` | duration between two CloudEvents  |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
+| `TIMEOUT` | duration for timeout when sending CloudEvent to sink |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
+
+
+## use cases examples
+
+As the go-template includes the [sprig functions] you can use built-in functionality for math, security/encryption, etc.
+
+### eliminate duplicates
+
+```bash
+CE_TEMPLATE='{{ $people := .data.people | uniq }} { "data": { "people": {{ toJson $people }} } , "datacontenttype":"application/json","id":"{{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' go run cmd/mapper/main.go
+
+http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" people:='[ { "name": "Bob", "age": "23" }, { "name": "John", "age": "17" } , {"name": "Bill", "age": "70"}, { "name": "Bob", "age": "23" } ]'
+```
+
+### grouping
+
+```bash
+CE_TEMPLATE='{{ $people := .data.people }} {{ $adults := list }} {{ $children := list }} {{ range $people }} {{ $age := .age | atoi }} {{ if gt $age 17 }} {{ $adults = append $adults . }}{{ else }}{{ $children = append $children . }}{{ end }} {{ end }}{ "data": { "adults": {{ toJson $adults }}, "children": {{ toJson $children }} } , "datacontenttype":"application/json","id":"{{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' go run cmd/mapper/main.go
+http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" people:='[ { "name": "Bob", "age": "23" }, { "name": "John", "age": "17" } , {"name": "Bill", "age": "70"} ]'
+```
+
+### encrypt/decrypt secret parts of event payload
 
 ```bash
 # encrypt
@@ -30,7 +64,7 @@ For simple transformation tasks you can use a go-template as a runtime parameter
 CE_TEMPLATE='{ "data": { "foo": {{ toJson .data.foo }}, "secret": "{{ encryptAES (env "SECRET_KEY") (toJson .data.secret) }}" } , "datacontenttype":"application/json","id":" {{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' SECRET_KEY="mysecretKey" CE_PORT=8070 go run cmd/mapper/main.go
 # encrypt event ( use new shell)
 http POST localhost:8070 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" foo=foovalue secret:='{ "name": "James", "lastName": "Bond"}'
-# save the encypted response part
+# save the encrypted response part
 ENCRYPTED_SECRET=$(http --print=b POST localhost:8070 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" foo=foovalue secret:='{ "name": "James", "lastName": "Bond"}' | jq -r .secret)
 # decrypt
 # start the decrypt mapper (use a new shell)
@@ -39,13 +73,14 @@ CE_TEMPLATE='{ "data": { "foo": {{ toJson .data.foo }}, "secret": {{ .data.secre
 http --print=Bhb POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" foo=foovalue secret=$ENCRYPTED_SECRET
 ```
 
-### producing random types
+### producing random CloudEvents
 
-[TODO]
+```bash
+CE_TEMPLATE='
+ {{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
+```
 
-
-
-## some deployment options in knative
+## deployment options in knative
 
 ### event producer as container source
 
@@ -90,10 +125,9 @@ kubectl apply -f deployments/mapper-display-sinkbinding.yaml
 # create event mapper in send mode
 kn service create event-mapper --image=docker.io/alitari/ce-go-template-mapper --scale-min 1
 # make a request
-http POST http://event-mapper.default.157.97.107.125.xip.io "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: http.demo" "ce-id: 123-abc" name=Hase
+MAPPER_URL=$(kubectl get ksvc event-mapper -o=json | jq -r .status.url)
+http POST $MAPPER_URL "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: http.demo" "ce-id: 123-abc" name=Hase
 ```
-
-
 
 ## development
 
@@ -119,5 +153,12 @@ scripts/publish_image.sh producer
 scripts/publish_image.sh mapper
 ```
 
+[CloudEvents]: https://github.com/cloudevents/spec
+[CloudEvents spec]: https://github.com/cloudevents/spec/blob/v1.0/spec.md
+[CloudEvents context attributes]: https://github.com/cloudevents/spec/blob/v1.0/spec.md#context-attributes
+[go-template]: https://golang.org/pkg/text/template/
+[ContainerSource]: https://knative.dev/docs/eventing/sources/containersource/
+[Sinkbinding]: https://knative.dev/docs/eventing/sources/sinkbinding/
 [httpie]: https://httpie.org/
+[event sink]: https://redhat-developer-demos.github.io/knative-tutorial/knative-tutorial-eventing/eventing-src-to-sink.html#eventing-sink
 [sprig functions]: http://masterminds.github.io/sprig/
