@@ -1,15 +1,18 @@
 name: PublishImages
 
 on:
+  workflow_dispatch:
+    branches: 
+      - master
   push:
-    branches: master
+    branches: 
+      - master
 
 jobs:
   login:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v1
         with:
           username: alitari
