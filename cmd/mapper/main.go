@@ -24,7 +24,7 @@ const (
 // Configuration bla
 type Configuration struct {
 	Verbose     bool   `default:"true"`
-	CeTemplate  string `split_words:"true" default:"{ \"data\": {{ toJson .data }} , \"datacontenttype\":\"application/json\",\"id\":\" {{ uuidv4 }}\",\"source\":\"{{ .source }}\",\"specversion\":\"{{ .specversion }}\",\"type\":\"{{ .type }}\" }"`
+	CeTemplate  string `split_words:"true" default:"{{ toJson .data }}"`
 	OnlyPayload bool   `split_words:"true" default:"true"`
 	CePort      int    `split_words:"true" default:"8080"`
 	Sink        string `envconfig:"K_SINK"`
@@ -41,7 +41,7 @@ func (c Configuration) mode() Mode {
 }
 
 func (c Configuration) info() string {
-	return fmt.Sprintf("Configuration:\n====================================\nSink: %v ( using %s)\nVerbose: %v\nTransform only payload: %v\nServing on Port: %v\nCeTemplate: '%v'", c.Sink, c.mode(), c.Verbose, c.OnlyPayload, c.CePort, c.CeTemplate)
+	return fmt.Sprintf("Configuration:\n====================================\nSink: %v (using %s)\nVerbose: %v\nTransform only payload: %v\nServing on Port: %v\nCeTemplate: '%v'", c.Sink, c.mode(), c.Verbose, c.OnlyPayload, c.CePort, c.CeTemplate)
 }
 
 var ceTransformer = &cetransformer.CloudEventTransformer{}
