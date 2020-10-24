@@ -144,30 +144,6 @@ MAPPER_URL=$(kubectl get ksvc event-mapper -o=json | jq -r .status.url)
 http POST $MAPPER_URL "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: http.demo" "ce-id: 123-abc" name=Hase
 ```
 
-## development
-
-### run local
-
-```bash
-# run mapper in reply mode
-go run cmd/mapper/main.go
-# check
-http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: http.demo" "ce-id: 123-abc" name=Alex
-# run mapper in send mode
-CE_PORT=7070 K_SINK="http://localhost:8080" go run cmd/mapper/main.go
-# check mapper in sendmode -> mapper in reply mode
-http POST localhost:7070 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: http.demo" "ce-id: 123-abc" name=Alex
-# run producer
-K_SINK="http://localhost:7070" go run cmd/producer/main.go
-```
-
-### publish images
-
-```bash
-scripts/publish_image.sh producer
-scripts/publish_image.sh mapper
-```
-
 [CloudEvent]: https://github.com/cloudevents/spec
 [knative]: https://knative.dev/
 [CloudEvents spec]: https://github.com/cloudevents/spec/blob/v1.0/spec.md
