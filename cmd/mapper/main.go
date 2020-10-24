@@ -13,7 +13,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-//Mode depending on K_SINK env variable, directy reply with an event or send it to the sink
+//Mode depending on K_SINK env variable, directly reply with an event or send it to the sink
 type Mode string
 
 const (
