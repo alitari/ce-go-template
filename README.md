@@ -1,5 +1,7 @@
 # process [CloudEvent] with [go template]
 
+![build](https://github.com/alitari/ce-go-template/workflows/TestAndBuildGreet/badge.svg)
+
 With the following 2 services you can produce and transform a [CloudEvent] with the [go template] syntax.
 
 - **ce-go-template-producer**: This service creates new cloud events frequently and send them to an [event sink]. In [knative] it can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
