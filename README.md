@@ -11,7 +11,7 @@ With the following 2 services you can produce and transform a [CloudEvent] with 
 
 In order to implement CloudEvent transformations you define a go-template representing the CloudEvent in JSON format. The JSON contains the following attributes:
 
-- `data`: the [CloudEvent Data](https://github.com/cloudevents/spec/blob/v1.0/spec.md#event-data) as JSON
+- `data`: the [CloudEvent Data] as JSON
 - the [CloudEvent context attributes] like `id`,`source`, `specversion`, `type`,`datacontenttype`
 
 The mapper can access the input CloudEvent data with the same structure.
@@ -171,6 +171,7 @@ scripts/publish_image.sh mapper
 [CloudEvent]: https://github.com/cloudevents/spec
 [knative]: https://knative.dev/
 [CloudEvents spec]: https://github.com/cloudevents/spec/blob/v1.0/spec.md
+[CloudEvent Data]: https://github.com/cloudevents/spec/blob/v1.0/spec.md#event-data
 [CloudEvent context attributes]: https://github.com/cloudevents/spec/blob/v1.0/spec.md#context-attributes
 [go template]: https://golang.org/pkg/text/template/
 [ContainerSource]: https://knative.dev/docs/eventing/sources/containersource/
