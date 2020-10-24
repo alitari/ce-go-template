@@ -5,16 +5,18 @@ on:
     branches: 
       - master
   push:
-    branches: 
-      - master
-
+    tags:
+      - 'v*.*.*'
 jobs:
-  login:
+  pushToDockerhub:
     runs-on: ubuntu-latest
     steps:
       -
         name: Checkout
         uses: actions/checkout@v2
+      - 
+        name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV        
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -33,13 +35,15 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: docker.io/alitari/ce-go-template-mapper:latest
+          tags: |
+            docker.io/alitari/ce-go-template-mapper:latest
+            docker.io/alitari/ce-go-template-mapper:${{ env.RELEASE_VERSION }}
           context: .
           file: ./build/Dockerfile_mapper
           platforms: linux/amd64
       -
         name: Image digest mapper
-        run: echo ${{ steps.docker_build.outputs.digest }}    
+        run: echo ${{ steps.docker_build_mapper.outputs.digest }}    
 
       -
         name: Build and push producer
@@ -47,10 +51,12 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: docker.io/alitari/ce-go-template-producer:latest
+          tags: |
+            docker.io/alitari/ce-go-template-producer:latest
+            docker.io/alitari/ce-go-template-producer:${{ env.RELEASE_VERSION }}
           context: .
           file: ./build/Dockerfile_producer
           platforms: linux/amd64
       -
         name: Image digest producer
-        run: echo ${{ steps.docker_build.outputs.digest }}    
+        run: echo ${{ steps.docker_build_producer.outputs.digest }}    
