@@ -9,7 +9,12 @@ With the following 2 services you can produce and transform a [CloudEvent] with 
 
 ## usage
 
-In order to implement CloudEvent transformations you define a go-template representing the CloudEvent in JSON format. The payload is stored in attribute `data`, on the same level there are the [CloudEvents context attributes]. The mapper can access the input CloudEvent data with the same structure.
+In order to implement CloudEvent transformations you define a go-template representing the CloudEvent in JSON format. The JSON contains the following attributes:
+
+- `data`: the [CloudEvent Data](https://github.com/cloudevents/spec/blob/v1.0/spec.md#event-data) as JSON
+- the [CloudEvent context attributes] like `id`,`source`, `specversion`, `type`,`datacontenttype`
+
+The mapper can access the input CloudEvent data with the same structure.
 
 ### example for a simple mapping
 
@@ -25,6 +30,15 @@ In order to implement CloudEvent transformations you define a go-template repres
 ```
 This transformation keeps all data of the input CloudEvent except the id. The id is created with the [sprig function `uuidv4`](http://masterminds.github.io/sprig/uuid.html).
 
+### example for a simple mapping in ONLY_PAYLOAD
+
+In order to reduce the template code, you can switch to `ONLY_PAYLOAD` mode, where the go-template represents just the JSON of [CloudEvent Data]. The values of [CloudEvent context attributes] are taken from the input event. So, the go-template for the same transformation like above, can be reduced to
+
+```txt
+{{ toJson .data }}
+```
+
+
 
 ### configuration
 
@@ -33,6 +47,7 @@ This transformation keeps all data of the input CloudEvent except the id. The id
 | `CE_TEMPLATE` | go template representing the resulting CloudEvent as JSON string | see code [producer](cmd/producer/main.go), [mapper](cmd/mapper/main.go)  | :heavy_check_mark: | :heavy_check_mark: |
 | `VERBOSE` | logs details if `true` |`true`| :heavy_check_mark: | :heavy_check_mark: |
 | `K_SINK` | destination uri of the outgoing CloudEvent |no | :heavy_check_mark: (mandatory)  | :heavy_check_mark: (empty for reply mode) |
+| `ONLY_PAYLOAD` | if `true` go-template represents only [CloudEvent Data] | `true` | :heavy_minus_sign:  | :heavy_check_mark: |
 | `PERIOD` | duration between two CloudEvents  |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
 | `TIMEOUT` | duration for timeout when sending CloudEvent to sink |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
 
@@ -44,7 +59,7 @@ As the go-template includes the [sprig functions] you can use built-in functiona
 ### eliminate duplicates
 
 ```bash
-CE_TEMPLATE='{{ $people := .data.people | uniq }} { "data": { "people": {{ toJson $people }} } , "datacontenttype":"application/json","id":"{{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' go run cmd/mapper/main.go
+CE_TEMPLATE='{{ $people := .data.people | uniq }} { "people": {{ toJson $people }} }' go run cmd/mapper/main.go
 
 http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" people:='[ { "name": "Bob", "age": "23" }, { "name": "John", "age": "17" } , {"name": "Bill", "age": "70"}, { "name": "Bob", "age": "23" } ]'
 ```
@@ -52,7 +67,7 @@ http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" 
 ### grouping
 
 ```bash
-CE_TEMPLATE='{{ $people := .data.people }} {{ $adults := list }} {{ $children := list }} {{ range $people }} {{ $age := .age | atoi }} {{ if gt $age 17 }} {{ $adults = append $adults . }}{{ else }}{{ $children = append $children . }}{{ end }} {{ end }}{ "data": { "adults": {{ toJson $adults }}, "children": {{ toJson $children }} } , "datacontenttype":"application/json","id":"{{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' go run cmd/mapper/main.go
+CE_TEMPLATE='{{ $people := .data.people }} {{ $adults := list }} {{ $children := list }} {{ range $people }} {{ $age := .age | atoi }} {{ if gt $age 17 }} {{ $adults = append $adults . }}{{ else }}{{ $children = append $children . }}{{ end }} {{ end }}{ "adults": {{ toJson $adults }}, "children": {{ toJson $children }} }' go run cmd/mapper/main.go
 
 http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" people:='[ { "name": "Bob", "age": "23" }, { "name": "John", "age": "17" } , {"name": "Bill", "age": "70"} ]'
 ```
@@ -62,14 +77,14 @@ http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" 
 ```bash
 # encrypt
 # start encrypt mapper 
-CE_TEMPLATE='{ "data": { "foo": {{ toJson .data.foo }}, "secret": "{{ encryptAES (env "SECRET_KEY") (toJson .data.secret) }}" } , "datacontenttype":"application/json","id":" {{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' SECRET_KEY="mysecretKey" CE_PORT=8070 go run cmd/mapper/main.go
+CE_TEMPLATE='{ "foo": {{ toJson .data.foo }}, "secret": "{{ encryptAES (env "SECRET_KEY") (toJson .data.secret) }}" }' SECRET_KEY="mysecretKey" CE_PORT=8070 go run cmd/mapper/main.go
 # encrypt event ( use new shell)
 http POST localhost:8070 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" foo=foovalue secret:='{ "name": "James", "lastName": "Bond"}'
 # save the encrypted response part
 ENCRYPTED_SECRET=$(http --print=b POST localhost:8070 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" foo=foovalue secret:='{ "name": "James", "lastName": "Bond"}' | jq -r .secret)
 # decrypt
 # start the decrypt mapper (use a new shell)
-CE_TEMPLATE='{ "data": { "foo": {{ toJson .data.foo }}, "secret": {{ .data.secret | decryptAES (env "SECRET_KEY") }} } , "datacontenttype":"application/json","id":" {{ uuidv4 }}","source":"{{ .source }}","specversion":"{{ .specversion }}","type":"{{ .type }}" }' SECRET_KEY="mysecretKey" go run cmd/mapper/main.go
+CE_TEMPLATE='{ "foo": {{ toJson .data.foo }}, "secret": {{ .data.secret | decryptAES (env "SECRET_KEY") }} }' SECRET_KEY="mysecretKey" go run cmd/mapper/main.go
 # decrypt encrypted source event 
 http --print=Bhb POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" foo=foovalue secret=$ENCRYPTED_SECRET
 ```
@@ -156,7 +171,7 @@ scripts/publish_image.sh mapper
 [CloudEvent]: https://github.com/cloudevents/spec
 [knative]: https://knative.dev/
 [CloudEvents spec]: https://github.com/cloudevents/spec/blob/v1.0/spec.md
-[CloudEvents context attributes]: https://github.com/cloudevents/spec/blob/v1.0/spec.md#context-attributes
+[CloudEvent context attributes]: https://github.com/cloudevents/spec/blob/v1.0/spec.md#context-attributes
 [go template]: https://golang.org/pkg/text/template/
 [ContainerSource]: https://knative.dev/docs/eventing/sources/containersource/
 [Sinkbinding]: https://knative.dev/docs/eventing/sources/sinkbinding/

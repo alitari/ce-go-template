@@ -8,12 +8,14 @@ import (
 
 	sprig "github.com/Masterminds/sprig"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/google/uuid"
 )
 
 // CloudEventTransformerConfig bla
 type CloudEventTransformerConfig struct {
-	CeTemplate string
-	Debug      bool
+	CeTemplate  string
+	Debug       bool
+	OnlyPayload bool
 }
 
 // CloudEventTransformer bla
@@ -64,7 +66,14 @@ func (ct *CloudEventTransformer) marshal(event cloudevents.Event) ([]byte, error
 }
 
 func (ct *CloudEventTransformer) unmarshal(source []byte, event *cloudevents.Event) error {
-	err := json.Unmarshal(source, event)
+	var err error
+	if ct.Config.OnlyPayload {
+		data := map[string]interface{}{}
+		err = json.Unmarshal(source, &data)
+		event.SetData(cloudevents.ApplicationJSON, data)
+	} else {
+		err = json.Unmarshal(source, event)
+	}
 	if err != nil {
 		return err
 	}
@@ -82,10 +91,21 @@ func (ct *CloudEventTransformer) TransformEvent(sourceEvent *cloudevents.Event) 
 		return nil, err
 	}
 	if ct.Config.Debug {
-		log.Printf("destination event as Json:   '%s'", string(resultEventBytes))
+		if ct.Config.OnlyPayload {
+			log.Printf("destination event payload as Json:   '%s'", string(resultEventBytes))
+		} else {
+			log.Printf("destination event as Json:   '%s'", string(resultEventBytes))
+		}
 	}
 	var resultEvent cloudevents.Event
-	ct.unmarshal(resultEventBytes, &resultEvent)
+	if ct.Config.OnlyPayload {
+		resultEvent = cloudevents.NewEvent()
+		resultEvent.Context = sourceEvent.Context.Clone()
+		resultEvent.SetID(uuid.New().String())
+		ct.unmarshal(resultEventBytes, &resultEvent)
+	} else {
+		ct.unmarshal(resultEventBytes, &resultEvent)
+	}
 	if ct.Config.Debug {
 		log.Printf("destination event:   '%v'", resultEvent)
 	}

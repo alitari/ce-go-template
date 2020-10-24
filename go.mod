@@ -12,5 +12,4 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
-	gopkg.in/yaml.v2 v2.3.0
 )
