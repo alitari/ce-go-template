@@ -1,6 +1,6 @@
 # process [CloudEvent] with [go template]
 
-![build](https://github.com/alitari/ce-go-template/workflows/TestAndBuildGreet/badge.svg)
+![build](https://github.com/alitari/ce-go-template/workflows/TestAndBuild/badge.svg)
 
 With the following 2 services you can produce and transform a [CloudEvent] with the [go template] syntax.
 
