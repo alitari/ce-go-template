@@ -26,7 +26,13 @@ jobs:
     - name: Test pkg
       run: |
             cd pkg/cetransformer
-            go test -v
+            go test -v -coverprofile=coverage.out
+            go tool cover -func=coverage.out
 
     - name: Build mapper
       run: go build -o bin/mapper cmd/mapper/main.go
+
+    - name: Build producer
+      run: go build -o bin/producer cmd/producer/main.go
+
+      
