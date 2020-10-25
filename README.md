@@ -6,23 +6,19 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alitari/ce-go-template)](https://goreportcard.com/report/github.com/alitari/ce-go-template)
 [![codecov](https://codecov.io/gh/alitari/ce-go-template/branch/main/graph/badge.svg)](https://codecov.io/gh/alitari/ce-go-template)
 
-With the following 2 services you can produce and transform a [CloudEvent] with the [go template] syntax.
+With the following services you can produce, transform and filter a [CloudEvent] with the [go template] syntax.
 
-- **ce-go-template-producer**: This service creates new cloud events frequently and send them to an [event sink]. In [knative] it can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
-- **ce-go-template-mapper**: This service transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either:
-   - sent to the sink ( *send mode*), or
-   - is the payload of the http response (*reply mode*)
+| Name ( image) | Description |
+| --------------| ----------- |
+| `ce-go-template-producer` | creates new cloud events frequently and send them to an [event sink]. In [knative] it can be applied as an event source using a [ContainerSource] or a [Sinkbinding] |
+| `ce-go-template-mapper` | transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either sent to the sink ( *send mode*), or is the payload of the http response (*reply mode*) |
+| `ce-go-template-filter` | replies with the incoming CloudEvent, if a predicate resolves to true. Otherwise the response has no content. In [knative] a filter can be applied in [Flows] like [Parallel] |
 
 ## usage
 
-In order to implement CloudEvent transformations you define a go-template representing the CloudEvent in JSON format. The JSON contains the following attributes:
+In order to implement CloudEvent transformations you define a go-template representing a result as a string. For the producer and mapper this result is a [JSON representation of CloudEvent]. The result of the filter is a boolean as string. Services with incoming CloudEvents ( mapper, filter) can evaluate the incoming CloudEvent for creating their result. 
 
-- `data`: the [CloudEvent Data] as JSON
-- the [CloudEvent context attributes] like `id`,`source`, `specversion`, `type`,`datacontenttype`
-
-The mapper can access the input CloudEvent data with the same structure.
-
-### example for a simple mapping
+### example for a mapper go-template
 
 ```txt
 { 
@@ -44,18 +40,25 @@ In order to reduce the template code, you can switch to `ONLY_PAYLOAD` mode, whe
 {{ toJson .data }}
 ```
 
+### example for a filter
+
+The simplest go-template for a filter is an empty string (`""`) which implements a blocker. The go-template `"true"` is the implementation for a filter where all events can get through. A bit more demanding is a filter which accepts only events from the source "mysource":
+
+```txt
+{{ eq .source "mysource" | toString }}
+```
 
 
 ### configuration
 
-| Env variable | Description | Default | Producer | Mapper |
-| ------------ | ------------| ------- | -------| ---|
-| `CE_TEMPLATE` | go template representing the resulting CloudEvent as JSON string | see code [producer](cmd/producer/main.go), [mapper](cmd/mapper/main.go)  | :heavy_check_mark: | :heavy_check_mark: |
-| `VERBOSE` | logs details if `true` |`true`| :heavy_check_mark: | :heavy_check_mark: |
-| `K_SINK` | destination uri of the outgoing CloudEvent |no | :heavy_check_mark: (mandatory)  | :heavy_check_mark: (empty for reply mode) |
-| `ONLY_PAYLOAD` | if `true` go-template represents only [CloudEvent Data] | `true` | :heavy_minus_sign:  | :heavy_check_mark: |
-| `PERIOD` | duration between two CloudEvents  |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
-| `TIMEOUT` | duration for timeout when sending CloudEvent to sink |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: |
+| Env variable | Description | Default | Producer | Mapper | Filter |
+| ------------ | ------------| ------- | -------  | ---    | ------ | 
+| `CE_TEMPLATE` | see details in usage | see code [producer](cmd/producer/main.go), [mapper](cmd/mapper/main.go), [filter](cmd/filter/main.go)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| `VERBOSE` | logs details if `true` |`true`| :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:|
+| `K_SINK` | destination uri of the outgoing CloudEvent |no | :heavy_check_mark: (mandatory)  | :heavy_check_mark: (empty for reply mode) | :heavy_minus_sign: |
+| `ONLY_PAYLOAD` | if `true` go-template represents only [CloudEvent Data] | `true` | :heavy_minus_sign:  | :heavy_check_mark: | :heavy_minus_sign: |
+| `PERIOD` | duration between two CloudEvents  |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
+| `TIMEOUT` | duration for timeout when sending CloudEvent to sink |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
 
 
 ## use cases examples
@@ -159,5 +162,8 @@ http POST $MAPPER_URL "content-type: application/json" "ce-specversion: 1.0" "ce
 [ContainerSource]: https://knative.dev/docs/eventing/sources/containersource/
 [Sinkbinding]: https://knative.dev/docs/eventing/sources/sinkbinding/
 [httpie]: https://httpie.org/
+[Flows]: https://knative.dev/docs/eventing/flows/
+[Parallel]: https://knative.dev/docs/eventing/flows/parallel/
 [event sink]: https://redhat-developer-demos.github.io/knative-tutorial/knative-tutorial-eventing/eventing-src-to-sink.html#eventing-sink
+[JSON representation of CloudEvent]: https://github.com/cloudevents/spec/blob/v1.0/json-format.md
 [sprig functions]: http://masterminds.github.io/sprig/
