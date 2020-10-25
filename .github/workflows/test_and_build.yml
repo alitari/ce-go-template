@@ -29,9 +29,18 @@ jobs:
     - name: Test pkg
       run: |
             cd pkg/cetransformer
-            go test -v -coverprofile=coverage.out
+            go test -v -coverprofile=coverage.out -covermode=atomic
             go tool cover -func=coverage.out
 
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODCOV_TOKEN }}
+        file: ./coverage.out
+        flags: unittests
+        name: cetransformer
+        verbose: true
+          
     - name: Build mapper
       run: go build -o bin/mapper cmd/mapper/main.go
 
