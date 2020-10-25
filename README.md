@@ -4,7 +4,7 @@
 ![build](https://github.com/alitari/ce-go-template/workflows/PublishImages/badge.svg)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/alitari/ce-go-template?style=plastic)
 [![Go Report Card](https://goreportcard.com/badge/github.com/alitari/ce-go-template)](https://goreportcard.com/report/github.com/alitari/ce-go-template)
-[![codecov](https://codecov.io/gh/alitari/ce-go-template/branch/master/graph/badge.svg)](https://codecov.io/gh/alitari/ce-go-template)
+[![codecov](https://codecov.io/gh/alitari/ce-go-template/branch/main/graph/badge.svg)](https://codecov.io/gh/alitari/ce-go-template)
 
 With the following 2 services you can produce and transform a [CloudEvent] with the [go template] syntax.
 
