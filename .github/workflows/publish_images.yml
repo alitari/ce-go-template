@@ -43,7 +43,7 @@ jobs:
           platforms: linux/amd64
       -
         name: Image digest mapper
-        run: echo ${{ steps.docker_build_mapper.outputs.digest }}    
+        run: echo ${{ steps.docker_build_mapper.outputs.digest }}
 
       -
         name: Build and push producer
@@ -59,4 +59,19 @@ jobs:
           platforms: linux/amd64
       -
         name: Image digest producer
-        run: echo ${{ steps.docker_build_producer.outputs.digest }}    
+        run: echo ${{ steps.docker_build_producer.outputs.digest }}
+      -
+        name: Build and push filter
+        id: docker_build_filter
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: |
+            docker.io/alitari/ce-go-template-filter:latest
+            docker.io/alitari/ce-go-template-filter:${{ env.RELEASE_VERSION }}
+          context: .
+          file: ./build/Dockerfile_filter
+          platforms: linux/amd64
+      -
+        name: Image digest filter
+        run: echo ${{ steps.docker_build_filter.outputs.digest }}

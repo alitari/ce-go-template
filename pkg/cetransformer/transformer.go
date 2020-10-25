@@ -57,14 +57,6 @@ func (ct *CloudEventTransformer) transformEventToBytes(event *cloudevents.Event)
 	return buf.Bytes(), nil
 }
 
-func (ct *CloudEventTransformer) marshal(event cloudevents.Event) ([]byte, error) {
-	result, err := json.Marshal(event)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
 func (ct *CloudEventTransformer) unmarshal(source []byte, event *cloudevents.Event) error {
 	var err error
 	if ct.Config.OnlyPayload {
@@ -110,4 +102,21 @@ func (ct *CloudEventTransformer) TransformEvent(sourceEvent *cloudevents.Event) 
 		log.Printf("destination event:   '%v'", resultEvent)
 	}
 	return &resultEvent, nil
+}
+
+// PredicateEvent bla
+func (ct *CloudEventTransformer) PredicateEvent(sourceEvent *cloudevents.Event) (bool, error) {
+	if ct.Config.Debug {
+		log.Printf("source event: '%v'", sourceEvent)
+	}
+	ct.count++
+	resultEventBytes, err := ct.transformEventToBytes(sourceEvent)
+	if err != nil {
+		return false, err
+	}
+	resultStr := string(resultEventBytes)
+	if ct.Config.Debug {
+		log.Printf("predicate result:   '%s'", resultStr)
+	}
+	return resultStr == "true", nil
 }

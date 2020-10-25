@@ -38,12 +38,13 @@ jobs:
         token: ${{ secrets.CODCOV_TOKEN }}
         file: pkg/cetransformer/coverage.out
         flags: unittests
-        name: cetransformer        
-          
+        name: cetransformer
+
     - name: Build mapper
       run: go build -o bin/mapper cmd/mapper/main.go
 
     - name: Build producer
       run: go build -o bin/producer cmd/producer/main.go
 
-      
+    - name: Build filter
+      run: go build -o bin/filter cmd/filter/main.go

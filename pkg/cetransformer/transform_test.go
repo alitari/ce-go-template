@@ -43,7 +43,7 @@ func newEventJSON(jsonData string, st ...string) cloudevents.Event {
 
 const defaultEventJSONMetaData = `"datacontenttype":"application/json","id":"id","source":"source","specversion":"1.0","type":"type"}`
 
-func TestCloudTransformer_Event_to_Event(t *testing.T) {
+func TestTransformEvent(t *testing.T) {
 	tests := []struct {
 		name    string
 		se      cloudevents.Event
@@ -118,6 +118,68 @@ func TestCloudTransformer_Event_to_Event(t *testing.T) {
 			}
 			if got.Type() != want.Type() {
 				t.Errorf("CloudEventTransformer.TransformEvent type not equal: actual = %v, want %v", got.Type(), want.Type())
+			}
+		})
+	}
+}
+
+func TestPredicateEvent(t *testing.T) {
+	tests := []struct {
+		name    string
+		se      cloudevents.Event
+		want    bool
+		config  CloudEventTransformerConfig
+		wantErr bool
+	}{
+		{name: "constantTrue",
+			se:      newEventJSON(`{"name": "King"}`),
+			config:  CloudEventTransformerConfig{CeTemplate: `true`},
+			want:    true,
+			wantErr: false},
+		{name: "constantFalse",
+			se:      newEventJSON(`{"name": "King"}`),
+			config:  CloudEventTransformerConfig{CeTemplate: ``},
+			want:    false,
+			wantErr: false},
+		{name: "simpleTrue",
+			se:      newEventJSON(`{"name": "King"}`),
+			config:  CloudEventTransformerConfig{CeTemplate: `{{ eq .data.name "King" | toString }}`},
+			want:    true,
+			wantErr: false},
+		{name: "simpleSourceFilter",
+			se:      newEventJSON(`{"name": "King"}`, "mysource"),
+			config:  CloudEventTransformerConfig{CeTemplate: `{{ eq .source "mysource" | toString }}`},
+			want:    true,
+			wantErr: false},
+
+		{name: "simpleWrong",
+			se:      newEventJSON(`{"name": "King"}`),
+			config:  CloudEventTransformerConfig{CeTemplate: `{{ eq .data.name "Queen" | toString }}`},
+			want:    false,
+			wantErr: false},
+		{name: "simpleError",
+			se:      newEventJSON(`{"name": "King"}`),
+			config:  CloudEventTransformerConfig{CeTemplate: `{{ eq .data.foo "Queen" | toString }}`},
+			want:    false,
+			wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.config.Debug = true
+			ct := &CloudEventTransformer{
+				Config: tt.config,
+			}
+			ct.Init()
+
+			got, err := ct.PredicateEvent(&tt.se)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CloudEventTransformer.PredicateEvent error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got != tt.want {
+				t.Errorf("CloudEventTransformer.PredicateEvent result not equal:\nactual = '%v'\nwant   = '%v'", got, tt.want)
 			}
 		})
 	}
