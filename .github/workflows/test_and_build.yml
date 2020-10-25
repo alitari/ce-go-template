@@ -36,10 +36,9 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         token: ${{ secrets.CODCOV_TOKEN }}
-        file: ./coverage.out
+        file: pkg/cetransformer/coverage.out
         flags: unittests
-        name: cetransformer
-        verbose: true
+        name: cetransformer        
           
     - name: Build mapper
       run: go build -o bin/mapper cmd/mapper/main.go
