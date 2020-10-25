@@ -3,7 +3,7 @@ name: PublishImages
 on:
   workflow_dispatch:
     branches: 
-      - master
+      - main
   push:
     tags:
       - 'v*.*.*'
