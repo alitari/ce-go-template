@@ -55,7 +55,7 @@ The simplest go-template for a filter is an empty string (`""`) which implements
 | ------------ | ------------| ------- | -------  | ---    | ------ | 
 | `CE_TEMPLATE` | see details in usage | see code [producer](cmd/producer/main.go), [mapper](cmd/mapper/main.go), [filter](cmd/filter/main.go)  | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | `VERBOSE` | logs details if `true` |`true`| :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark:|
-| `K_SINK` | destination uri of the outgoing CloudEvent |no | :heavy_check_mark: (mandatory)  | :heavy_check_mark: (empty for reply mode) | :heavy_minus_sign: |
+| `K_SINK` | destination uri of the outgoing CloudEvent |no | :heavy_check_mark: | :heavy_check_mark: (empty for reply mode) | :heavy_minus_sign: |
 | `ONLY_PAYLOAD` | if `true` go-template represents only [CloudEvent Data] | `true` | :heavy_minus_sign:  | :heavy_check_mark: | :heavy_minus_sign: |
 | `PERIOD` | duration between two CloudEvents  |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
 | `TIMEOUT` | duration for timeout when sending CloudEvent to sink |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
