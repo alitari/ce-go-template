@@ -13,9 +13,11 @@ import (
 
 // CloudEventTransformerConfig bla
 type CloudEventTransformerConfig struct {
-	CeTemplate  string
-	Debug       bool
-	OnlyPayload bool
+	CeTemplate       string
+	Debug            bool
+	OnlyPayload      bool
+	InputGenerator   func(event *cloudevents.Event) (map[string]interface{}, error)
+	FuncMapExtension template.FuncMap
 }
 
 // CloudEventTransformer bla
@@ -27,15 +29,32 @@ type CloudEventTransformer struct {
 
 // Init bla
 func (ct *CloudEventTransformer) Init() {
-	ct.tplt = template.Must(template.New("ceTemplate").Funcs(sprig.TxtFuncMap()).Funcs(template.FuncMap{
-		"count": func() uint64 {
-			return ct.count
-		},
-	}).Parse(ct.Config.CeTemplate))
+	if ct.Config.InputGenerator == nil {
+		ct.Config.InputGenerator = EventInputGenerator
+	}
+	if ct.Config.FuncMapExtension == nil {
+		ct.Config.FuncMapExtension = template.FuncMap{
+			"count": func() uint64 {
+				return ct.count
+			},
+		}
+	}
+	ct.tplt = template.Must(template.New("ceTemplate").Funcs(sprig.TxtFuncMap()).Funcs(ct.Config.FuncMapExtension).Parse(ct.Config.CeTemplate))
 	ct.count = 0
 }
 
-func (ct *CloudEventTransformer) transformEventToBytes(event *cloudevents.Event) ([]byte, error) {
+func (ct *CloudEventTransformer) transformInput(input map[string]interface{}) ([]byte, error) {
+	buf := &bytes.Buffer{}
+
+	err := ct.tplt.Execute(buf, input)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// EventInputGenerator Generates input from event
+func EventInputGenerator(event *cloudevents.Event) (map[string]interface{}, error) {
 	evt := map[string]interface{}{}
 	if event != nil {
 		evtData := map[string]interface{}{}
@@ -47,14 +66,15 @@ func (ct *CloudEventTransformer) transformEventToBytes(event *cloudevents.Event)
 		evt["datacontenttype"] = event.DataContentType()
 		evt["specversion"] = event.SpecVersion()
 	}
+	return evt, nil
+}
 
-	buf := &bytes.Buffer{}
-
-	err := ct.tplt.Execute(buf, evt)
+func (ct *CloudEventTransformer) transformEventToBytes(event *cloudevents.Event) ([]byte, error) {
+	input, err := ct.Config.InputGenerator(event)
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+	return ct.transformInput(input)
 }
 
 func (ct *CloudEventTransformer) unmarshal(source []byte, event *cloudevents.Event) error {
