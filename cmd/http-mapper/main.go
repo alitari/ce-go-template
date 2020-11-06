@@ -1,16 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
-	"text/template"
 	"time"
 
-	"github.com/Masterminds/sprig"
-	"github.com/alitari/ce-go-template/pkg/cetransformer"
-	"github.com/alitari/ce-go-template/pkg/httpprotocolsender"
+	"github.com/alitari/ce-go-template/pkg/cehttptransformer"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
@@ -52,10 +48,9 @@ func (c Configuration) info() string {
 	return fmt.Sprintf("Configuration:\n====================================\nSink: %v (using %s)\nVerbose: %v\nHTTP Template: '%s'\nTransform only payload: %v\nServing on Port: %v\nCeTemplate: '%v'", c.Sink, c.mode(), c.Verbose, c.HTTPTemplate, c.OnlyPayload, c.CePort, c.CeTemplate)
 }
 
-var ceTransformer = &cetransformer.CloudEventTransformer{}
+var cehttpTransformer *cehttptransformer.CeHTTPTransformer
 var count = 0
-var httpSender = httpprotocolsender.HTTPProtocolSender{}
-var httpTplt = template.Must(template.New("httpTemplate").Funcs(sprig.TxtFuncMap()).Parse(config.HTTPTemplate))
+var httpSender *cehttptransformer.HTTPProtocolSender
 
 var ceClient cloudevents.Client = nil
 var config Configuration
@@ -67,12 +62,11 @@ func main() {
 	}
 	log.Print(config.info())
 
-	ceTransformer.Config = cetransformer.CloudEventTransformerConfig{CeTemplate: config.CeTemplate, Debug: config.Verbose, OnlyPayload: config.OnlyPayload, InputGenerator: generateInputWithHTTP}
 	httpSenderTimeout, err := time.ParseDuration(config.HTTPTimeout)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	httpSender.Timeout = httpSenderTimeout
+	cehttpTransformer = cehttptransformer.NewCeHTTPTransformer(cehttptransformer.CeHTTPTransformerConfig{CeTemplate: config.CeTemplate, Debug: config.Verbose, OnlyPayload: config.OnlyPayload, Timeout: httpSenderTimeout})
 
 	httpProtocol, err := cloudevents.NewHTTP(cloudevents.WithPort(config.CePort))
 	if err != nil {
@@ -83,7 +77,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	ceTransformer.Init()
 
 	var receiver interface{} // the SDK reflects on the signature.
 	if config.mode() == send {
@@ -97,39 +90,9 @@ func main() {
 	}
 }
 
-func generateInputWithHTTP(event *cloudevents.Event) (map[string]interface{}, error) {
-	result := map[string]interface{}{}
-	evtData, err := cetransformer.EventInputGenerator(event)
-	if err != nil {
-		return nil, err
-	}
-	result["inputce"] = evtData
-
-	requestBuf := &bytes.Buffer{}
-	err = httpTplt.Execute(requestBuf, evtData)
-	if err != nil {
-		return nil, err
-	}
-
-	err = httpSender.Parse(requestBuf.String())
-	if err != nil {
-		return nil, err
-	}
-	resp, err := httpSender.Send()
-	if err != nil {
-		return nil, err
-	}
-	respMap, err := httpSender.ResponseToMap(resp, config.HTTPJsonBody)
-	if err != nil {
-		return nil, err
-	}
-	result["httpresponse"] = respMap
-	return result, nil
-}
-
 // ReceiveAndReply is invoked whenever we receive an event in reply mode
 func ReceiveAndReply(ctx context.Context, sourceEvent cloudevents.Event) (*cloudevents.Event, protocol.Result) {
-	destEvent, err := ceTransformer.TransformEvent(&sourceEvent)
+	destEvent, err := cehttpTransformer.TransformEvent(&sourceEvent)
 	if err != nil {
 		return nil, http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
 	}
@@ -138,7 +101,7 @@ func ReceiveAndReply(ctx context.Context, sourceEvent cloudevents.Event) (*cloud
 
 // ReceiveAndSend is invoked whenever we receive an event in send mode
 func ReceiveAndSend(ctx context.Context, sourceEvent cloudevents.Event) protocol.Result {
-	destEvent, err := ceTransformer.TransformEvent(&sourceEvent)
+	destEvent, err := cehttpTransformer.TransformEvent(&sourceEvent)
 	if err != nil {
 		return http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
 	}

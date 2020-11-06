@@ -28,8 +28,7 @@ jobs:
 
     - name: Test pkg
       run: |
-            cd pkg/cetransformer
-            go test -v -coverprofile=coverage.out -covermode=atomic
+            go test ./... -coverprofile=coverage.out -covermode=atomic -v
             go tool cover -func=coverage.out
 
     - name: Upload coverage report

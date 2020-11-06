@@ -24,7 +24,7 @@ func (c Configuration) info() string {
 	return fmt.Sprintf("Configuration:\n====================================\nVerbose: %v\nServing on Port: %v\nCeTemplate: '%v'", c.Verbose, c.CePort, c.CeTemplate)
 }
 
-var ceTransformer = &cetransformer.CloudEventTransformer{}
+var ceTransformer *cetransformer.CloudEventTransformer
 var ceClient cloudevents.Client = nil
 var config Configuration
 
@@ -35,7 +35,7 @@ func main() {
 	}
 	log.Print(config.info())
 
-	ceTransformer.Config = cetransformer.CloudEventTransformerConfig{CeTemplate: config.CeTemplate, Debug: config.Verbose, OnlyPayload: false}
+	ceTransformer = cetransformer.NewCloudEventTransformer(config.CeTemplate, false, config.Verbose)
 
 	httpProtocol, err := cloudevents.NewHTTP(cloudevents.WithPort(config.CePort))
 	if err != nil {
@@ -46,8 +46,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	ceTransformer.Init()
-
 	if err = ceClient.StartReceiver(context.Background(), ReceiveAndReply); err != nil {
 		log.Fatal(err)
 	}

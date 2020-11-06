@@ -44,7 +44,7 @@ func (c Configuration) info() string {
 	return fmt.Sprintf("Configuration:\n====================================\nSink: %v (using %s)\nVerbose: %v\nTransform only payload: %v\nServing on Port: %v\nCeTemplate: '%v'", c.Sink, c.mode(), c.Verbose, c.OnlyPayload, c.CePort, c.CeTemplate)
 }
 
-var ceTransformer = &cetransformer.CloudEventTransformer{}
+var ceTransformer *cetransformer.CloudEventTransformer
 var ceClient cloudevents.Client = nil
 var config Configuration
 
@@ -55,7 +55,7 @@ func main() {
 	}
 	log.Print(config.info())
 
-	ceTransformer.Config = cetransformer.CloudEventTransformerConfig{CeTemplate: config.CeTemplate, Debug: config.Verbose, OnlyPayload: config.OnlyPayload}
+	ceTransformer = cetransformer.NewCloudEventTransformer(config.CeTemplate, config.OnlyPayload, config.Verbose)
 
 	httpProtocol, err := cloudevents.NewHTTP(cloudevents.WithPort(config.CePort))
 	if err != nil {
@@ -66,7 +66,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	ceTransformer.Init()
 
 	var receiver interface{} // the SDK reflects on the signature.
 	if config.mode() == send {

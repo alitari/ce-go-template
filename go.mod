@@ -12,4 +12,5 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
+	golang.org/x/crypto v0.0.0-20200204104054-c9f3fb736b72 // indirect
 )

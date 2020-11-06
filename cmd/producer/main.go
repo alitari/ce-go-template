@@ -14,7 +14,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-var ceTransformer = &cetransformer.CloudEventTransformer{}
+var ceTransformer *cetransformer.CloudEventTransformer
 var ceClient cloudevents.Client = nil
 
 // Configuration bla
@@ -37,11 +37,7 @@ func main() {
 	}
 	log.Print(config.info())
 
-	// if _, err := url.ParseRequestURI(config.Sink); err != nil {
-	// 	log.Fatalf("error with K_SINK: %v", err)
-	// }
-
-	ceTransformer.Config = cetransformer.CloudEventTransformerConfig{CeTemplate: config.CeTemplate, Debug: config.Verbose}
+	ceTransformer = cetransformer.NewCloudEventTransformer(config.CeTemplate, false, config.Verbose)
 
 	var err error
 
@@ -58,7 +54,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	ceTransformer.Init()
 	ticker := time.NewTicker(duration)
 	go func() {
 		for {

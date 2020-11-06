@@ -1,4 +1,4 @@
-package httpprotocolsender
+package cehttptransformer
 
 import (
 	"encoding/json"
@@ -26,12 +26,11 @@ func TestHTTPProtocolSender_Parse_Send_Map(t *testing.T) {
 	tests := []struct {
 		name       string
 		hps        *HTTPProtocolSender
-		protocol   string
 		wantErr    bool
 		jsonBody   bool
 		assertFunc func(response map[string]interface{}) string
 	}{
-		{name: "SimpleGet", hps: &HTTPProtocolSender{Timeout: 5 * time.Second}, protocol: readFromFile("httpbinGet.http"), wantErr: false,
+		{name: "SimpleGet", hps: NewHTTPProtocolSender(readFromFile("httpbinGet.http"), 5*time.Second), wantErr: false,
 			assertFunc: func(response map[string]interface{}) string {
 				if response["statusCode"] != 200 {
 					return "statusCode not ok"
@@ -52,30 +51,26 @@ func TestHTTPProtocolSender_Parse_Send_Map(t *testing.T) {
 				}
 				return ""
 			}},
-		{name: "SimplePost", hps: &HTTPProtocolSender{Timeout: 5 * time.Second}, protocol: readFromFile("httpbinPost.http"), wantErr: false,
+		{name: "SimplePost", hps: NewHTTPProtocolSender(readFromFile("httpbinPost.http"), 5*time.Second), wantErr: false,
 			assertFunc: func(response map[string]interface{}) string {
 				return ""
 			}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hps := &HTTPProtocolSender{}
-			if err := hps.Parse(tt.protocol); (err != nil) != tt.wantErr {
-				t.Errorf("HTTPProtocolSender.Parse() error = %v, wantErr %v", err, tt.wantErr)
+
+			response, err := tt.hps.Send()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HTTPProtocolSender.Send() error = %v, wantErr %v", err, tt.wantErr)
 			} else {
-				response, err := hps.Send()
+				responseMap, err := ResponseToMap(response, tt.jsonBody)
 				if (err != nil) != tt.wantErr {
-					t.Errorf("HTTPProtocolSender.Send() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("HTTPProtocolSender.Map() error = %v, wantErr %v", err, tt.wantErr)
 				} else {
-					responseMap, err := hps.ResponseToMap(response, tt.jsonBody)
-					if (err != nil) != tt.wantErr {
-						t.Errorf("HTTPProtocolSender.Map() error = %v, wantErr %v", err, tt.wantErr)
-					} else {
-						if msg := tt.assertFunc(responseMap); len(msg) > 0 {
-							t.Errorf("HTTPProtocolSender response assert failure: %s", msg)
-						}
-						log.Printf("Response: %v", response)
+					if msg := tt.assertFunc(responseMap); len(msg) > 0 {
+						t.Errorf("HTTPProtocolSender response assert failure: %s", msg)
 					}
+					log.Printf("Response: %v", response)
 				}
 			}
 		})
