@@ -60,15 +60,16 @@ func (ct *CloudEventTransformer) TransformBytesToEventOnlyPayload(eventMarshalle
 	resultEvent = cloudevents.NewEvent()
 	resultEvent.Context = context
 	resultEvent.SetID(uuid.New().String())
-	Unmarshal(eventMarshalled, &resultEvent, ct.onlyPayload)
+	if err := Unmarshal(eventMarshalled, &resultEvent, ct.onlyPayload); err != nil {
+		return nil, err
+	}
 	return &resultEvent, nil
 }
 
 // TransformBytesToEvent bla
 func (ct *CloudEventTransformer) TransformBytesToEvent(eventMarshalled []byte) (*cloudevents.Event, error) {
 	var resultEvent cloudevents.Event
-	err := Unmarshal(eventMarshalled, &resultEvent, ct.onlyPayload)
-	if err != nil {
+	if err := Unmarshal(eventMarshalled, &resultEvent, ct.onlyPayload); err != nil {
 		return nil, err
 	}
 	return &resultEvent, nil
@@ -81,14 +82,13 @@ func (ct *CloudEventTransformer) TransformEvent(sourceEvent *cloudevents.Event) 
 		return nil, err
 	}
 	var resultEvent *cloudevents.Event
-	var errr error
 	if ct.onlyPayload {
-		resultEvent, errr = ct.TransformBytesToEventOnlyPayload(resultEventBytes, sourceEvent.Context.Clone())
+		resultEvent, err = ct.TransformBytesToEventOnlyPayload(resultEventBytes, sourceEvent.Context.Clone())
 	} else {
-		resultEvent, errr = ct.TransformBytesToEvent(resultEventBytes)
+		resultEvent, err = ct.TransformBytesToEvent(resultEventBytes)
 	}
-	if errr != nil {
-		return nil, errr
+	if err != nil {
+		return nil, err
 	}
 	return resultEvent, nil
 }

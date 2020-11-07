@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func readFromFile(filename string) string {
+func ReadFromFile(filename string) string {
 	content, err := ioutil.ReadFile("../../test/httpRequests/" + filename)
 	if err != nil {
 		log.Fatal(err)
@@ -30,7 +30,7 @@ func TestHTTPProtocolSender_Parse_Send_Map(t *testing.T) {
 		jsonBody   bool
 		assertFunc func(response map[string]interface{}) string
 	}{
-		{name: "SimpleGet", hps: NewHTTPProtocolSender(readFromFile("httpbinGet.http"), 5*time.Second), wantErr: false,
+		{name: "SimpleGet", hps: NewHTTPProtocolSender(ReadFromFile("httpbinGet.http"), 5*time.Second), wantErr: false,
 			assertFunc: func(response map[string]interface{}) string {
 				if response["statusCode"] != 200 {
 					return "statusCode not ok"
@@ -51,7 +51,7 @@ func TestHTTPProtocolSender_Parse_Send_Map(t *testing.T) {
 				}
 				return ""
 			}},
-		{name: "SimplePost", hps: NewHTTPProtocolSender(readFromFile("httpbinPost.http"), 5*time.Second), wantErr: false,
+		{name: "SimplePost", hps: NewHTTPProtocolSender(ReadFromFile("httpbinPost.http"), 5*time.Second), wantErr: false,
 			assertFunc: func(response map[string]interface{}) string {
 				return ""
 			}},

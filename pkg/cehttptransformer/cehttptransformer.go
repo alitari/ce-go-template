@@ -12,27 +12,29 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
-type CeHTTPTransformerConfig struct {
+// Config bla
+type Config struct {
+	HTTPTemplate string
+	CeTemplate   string
 	Timeout      time.Duration
 	JSONBody     bool
 	OnlyPayload  bool
-	HTTPTemplate string
-	CeTemplate   string
 	Debug        bool
 }
 
 // CeHTTPTransformer bla
 type CeHTTPTransformer struct {
-	config          CeHTTPTransformerConfig
+	config          Config
 	request         *http.Request
 	client          *http.Client
 	httpTransformer *transformer.Transformer
 	ceTransformer   *transformer.Transformer
 }
 
-func NewCeHTTPTransformer(config CeHTTPTransformerConfig) *CeHTTPTransformer {
+// NewCeHTTPTransformer bla
+func NewCeHTTPTransformer(httpTemplate string, ceTemplate string, timeout time.Duration, jsonBody bool, onlyPayload bool, debug bool) *CeHTTPTransformer {
 	cht := new(CeHTTPTransformer)
-	cht.config = config
+	cht.config = Config{HTTPTemplate: httpTemplate, CeTemplate: ceTemplate, Timeout: timeout, JSONBody: jsonBody, OnlyPayload: onlyPayload, Debug: debug}
 	cht.httpTransformer = transformer.NewTransformer(transformer.Config{CeTemplate: cht.config.HTTPTemplate, Debug: cht.config.Debug})
 	cht.ceTransformer = transformer.NewTransformer(transformer.Config{CeTemplate: cht.config.CeTemplate, Debug: cht.config.Debug})
 	return cht
@@ -54,11 +56,11 @@ func (ct *CeHTTPTransformer) TransformEvent(sourceEvent *cloudevents.Event) (*cl
 	if err != nil {
 		return nil, err
 	}
-	var input map[string]interface{}
+	input := map[string]interface{}{}
 	input["inputce"] = inputEventData
 	input["httpresponse"] = respData
 	eventBytes, err := ct.ceTransformer.TransformInputToBytes(input)
-	result := cloudevents.Event{}
+	result := cloudevents.NewEvent()
 
 	if err := cetransformer.Unmarshal(eventBytes, &result, ct.config.OnlyPayload); err != nil {
 		return nil, err
@@ -69,6 +71,7 @@ func (ct *CeHTTPTransformer) TransformEvent(sourceEvent *cloudevents.Event) (*cl
 	return &result, nil
 }
 
+// ResponseToMap bla
 func ResponseToMap(response *http.Response, jsonBody bool) (map[string]interface{}, error) {
 	responseMap := map[string]interface{}{}
 	if response != nil {

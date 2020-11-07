@@ -1,16 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/alitari/ce-go-template/pkg/cehttptransformer"
+	"github.com/alitari/ce-go-template/pkg/cetransformer"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/cloudevents/sdk-go/v2/protocol"
-	"github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -66,7 +64,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	cehttpTransformer = cehttptransformer.NewCeHTTPTransformer(cehttptransformer.CeHTTPTransformerConfig{CeTemplate: config.CeTemplate, Debug: config.Verbose, OnlyPayload: config.OnlyPayload, Timeout: httpSenderTimeout})
+	cehttpTransformer = cehttptransformer.NewCeHTTPTransformer(config.HTTPTemplate, config.CeTemplate, httpSenderTimeout, config.HTTPJsonBody, config.OnlyPayload, config.Verbose)
 
 	httpProtocol, err := cloudevents.NewHTTP(cloudevents.WithPort(config.CePort))
 	if err != nil {
@@ -78,36 +76,8 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	var receiver interface{} // the SDK reflects on the signature.
-	if config.mode() == send {
-		receiver = ReceiveAndSend
-	} else {
-		receiver = ReceiveAndReply
-	}
-
-	if err = ceClient.StartReceiver(context.Background(), receiver); err != nil {
-		log.Fatal(err)
-	}
-}
-
-// ReceiveAndReply is invoked whenever we receive an event in reply mode
-func ReceiveAndReply(ctx context.Context, sourceEvent cloudevents.Event) (*cloudevents.Event, protocol.Result) {
-	destEvent, err := cehttpTransformer.TransformEvent(&sourceEvent)
+	_, err = cetransformer.NewCeTransformHandler(cehttpTransformer, ceClient, config.Sink, config.Verbose)
 	if err != nil {
-		return nil, http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
+		log.Fatal(err.Error())
 	}
-	return destEvent, nil
-}
-
-// ReceiveAndSend is invoked whenever we receive an event in send mode
-func ReceiveAndSend(ctx context.Context, sourceEvent cloudevents.Event) protocol.Result {
-	destEvent, err := cehttpTransformer.TransformEvent(&sourceEvent)
-	if err != nil {
-		return http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
-	}
-	if config.Verbose {
-		log.Printf("sending event: %v", destEvent)
-	}
-	result := ceClient.Send(cloudevents.ContextWithTarget(ctx, config.Sink), *destEvent)
-	return result
 }

@@ -1,15 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 
 	"github.com/alitari/ce-go-template/pkg/cetransformer"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/cloudevents/sdk-go/v2/protocol"
-	"github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -46,19 +43,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	if err = ceClient.StartReceiver(context.Background(), ReceiveAndReply); err != nil {
-		log.Fatal(err)
-	}
-}
 
-// ReceiveAndReply is invoked whenever we receive an event in reply mode
-func ReceiveAndReply(ctx context.Context, sourceEvent cloudevents.Event) (*cloudevents.Event, protocol.Result) {
-	reply, err := ceTransformer.PredicateEvent(&sourceEvent)
+	_, err = cetransformer.NewPredicateHandler(ceTransformer, ceClient, config.Verbose)
 	if err != nil {
-		return nil, http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
+		log.Fatal(err.Error())
 	}
-	if reply {
-		return &sourceEvent, nil
-	}
-	return nil, http.NewResult(204, "predicate is false")
+
 }
