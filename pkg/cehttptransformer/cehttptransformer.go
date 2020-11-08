@@ -71,6 +71,29 @@ func (ct *CeHTTPTransformer) TransformEvent(sourceEvent *cloudevents.Event) (*cl
 	return &result, nil
 }
 
+func (ct *CeHTTPTransformer) PredicateEvent(sourceEvent *cloudevents.Event) (bool, error) {
+	inputEventData := cetransformer.EventAsInput(sourceEvent)
+	httpBytes, err := ct.httpTransformer.TransformInputToBytes(inputEventData)
+	if err != nil {
+		return false, err
+	}
+	sender := NewHTTPProtocolSender(string(httpBytes), ct.config.Timeout)
+	resp, err := sender.Send()
+	if err != nil {
+		return false, err
+	}
+	respData, err := ResponseToMap(resp, ct.config.JSONBody)
+	if err != nil {
+		return false, err
+	}
+	input := map[string]interface{}{}
+	input["inputce"] = inputEventData
+	input["httpresponse"] = respData
+	booleanBytes, err := ct.ceTransformer.TransformInputToBytes(input)
+	resultStr := string(booleanBytes)
+	return resultStr == "true", nil
+}
+
 // ResponseToMap bla
 func ResponseToMap(response *http.Response, jsonBody bool) (map[string]interface{}, error) {
 	responseMap := map[string]interface{}{}

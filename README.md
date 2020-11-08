@@ -113,6 +113,14 @@ The simplest go-template for a filter is an empty string (`""`) which implements
 
 As the go-template includes the [sprig functions] you can use built-in functionality for math, security/encryption, etc.
 
+### producer
+
+#### producing random CloudEvents
+
+```bash
+CE_TEMPLATE='{{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
+```
+
 ### mapper
 
 #### eliminate duplicates
@@ -156,13 +164,17 @@ HTTP_TEMPLATE="GET https://api.genderize.io?name={{ .data.name }} HTTP/1.1"$'\n'
 http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" name=Sabine
 ```
 
-### producer
+### filter
 
-#### producing random CloudEvents
+#### filter with external services
 
 ```bash
-CE_TEMPLATE='{{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
+HTTP_TEMPLATE="GET https://api.genderize.io?name={{ .data.name }} HTTP/1.1"$'\n'"content-type: application/json"$'\n'$'\n' CE_TEMPLATE='{{ eq .httpresponse.body.gender "female" | toString }}' go run cmd/http-filter/main.go
+
+## with male surname you will get 204
+http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" name=Sabine
 ```
+
 
 ## deployment options in [knative]
 
