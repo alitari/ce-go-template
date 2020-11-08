@@ -44,7 +44,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	_, err = cetransformer.NewPredicateHandler(ceTransformer, ceClient, config.Verbose)
+	_, err = cetransformer.NewFilterHandler(ceTransformer, ceClient, config.Verbose)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

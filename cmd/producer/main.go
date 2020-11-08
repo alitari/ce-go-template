@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -16,6 +15,7 @@ import (
 
 var ceTransformer *cetransformer.CloudEventTransformer
 var ceClient cloudevents.Client = nil
+var ceProducerHandler *cetransformer.CeProducerHandler
 
 // Configuration bla
 type Configuration struct {
@@ -37,8 +37,6 @@ func main() {
 	}
 	log.Print(config.info())
 
-	ceTransformer = cetransformer.NewCloudEventTransformer(config.CeTemplate, false, config.Verbose)
-
 	var err error
 
 	timeout, err := time.ParseDuration(config.Timeout)
@@ -54,23 +52,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	ceTransformer = cetransformer.NewCloudEventTransformer(config.CeTemplate, false, config.Verbose)
+
+	ceProducerHandler = cetransformer.NewProducerHandler(ceTransformer, ceClient, config.Sink, timeout, config.Verbose)
+
 	ticker := time.NewTicker(duration)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				destEvent, err := ceTransformer.TransformEvent(nil)
-				if err != nil {
-					log.Fatal(err.Error())
-				}
-				if config.Verbose {
-					log.Printf("Sending event to: '%s'", config.Sink)
-				}
-
-				timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
-				defer cancel()
-				sendCtx := cloudevents.ContextWithTarget(timeoutCtx, config.Sink)
-				result := ceClient.Send(sendCtx, *destEvent)
+				result := ceProducerHandler.SendCe(nil)
 				re := result.Error()
 				if !strings.HasPrefix(re, "20") {
 					log.Printf("Failed to send event! error: %v", result.Error())
@@ -87,5 +78,4 @@ func main() {
 		}
 	}()
 	select {}
-
 }

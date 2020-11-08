@@ -3,30 +3,32 @@ package cetransformer
 import (
 	"context"
 	"log"
+	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	"github.com/cloudevents/sdk-go/v2/protocol/http"
 )
 
-// CeTransformer transforms source cloudEvent in a destination cloudEvent
-type CeTransformer interface {
+// CeMapper transforms source cloudEvent in a destination cloudEvent
+type CeMapper interface {
 	TransformEvent(sourceEvent *cloudevents.Event) (*cloudevents.Event, error)
 }
 
-// CeTransformHandler provides callback functions for handling cloudEvents
-type CeTransformHandler struct {
-	transformer CeTransformer
+// CeMapperHandler provides callback functions for handling cloudEvents
+type CeMapperHandler struct {
+	transformer CeMapper
 	ceClient    cloudevents.Client
 	sink        string
 	debug       bool
 }
 
-// NewCeTransformHandler start handling cloudEvents
-func NewCeTransformHandler(transformer CeTransformer, ceClient cloudevents.Client, sink string, debug bool) (*CeTransformHandler, error) {
-	ceh := new(CeTransformHandler)
+// NewCeMapperHandler start handling cloudEvents
+func NewCeMapperHandler(transformer CeMapper, ceClient cloudevents.Client, sink string, debug bool) (*CeMapperHandler, error) {
+	ceh := new(CeMapperHandler)
 	ceh.transformer = transformer
 	ceh.ceClient = ceClient
+	ceh.sink = sink
 	ceh.debug = debug
 	var receiver interface{} // the SDK reflects on the signature.
 	if len(sink) == 0 {
@@ -41,7 +43,7 @@ func NewCeTransformHandler(transformer CeTransformer, ceClient cloudevents.Clien
 }
 
 // ReceiveSendCe transform event and send it to sink
-func (ceh *CeTransformHandler) ReceiveSendCe(ctx context.Context, sourceEvent cloudevents.Event) protocol.Result {
+func (ceh *CeMapperHandler) ReceiveSendCe(ctx context.Context, sourceEvent cloudevents.Event) protocol.Result {
 	destEvent, err := ceh.transformer.TransformEvent(&sourceEvent)
 	if err != nil {
 		return http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
@@ -54,7 +56,7 @@ func (ceh *CeTransformHandler) ReceiveSendCe(ctx context.Context, sourceEvent cl
 }
 
 // ReceiveReplyCe transform event and put the result in the response
-func (ceh *CeTransformHandler) ReceiveReplyCe(ctx context.Context, sourceEvent cloudevents.Event) (*cloudevents.Event, protocol.Result) {
+func (ceh *CeMapperHandler) ReceiveReplyCe(ctx context.Context, sourceEvent cloudevents.Event) (*cloudevents.Event, protocol.Result) {
 	destEvent, err := ceh.transformer.TransformEvent(&sourceEvent)
 	if err != nil {
 		return nil, http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
@@ -62,21 +64,21 @@ func (ceh *CeTransformHandler) ReceiveReplyCe(ctx context.Context, sourceEvent c
 	return destEvent, nil
 }
 
-// CePredicate transforms source cloudEvent in a bool
-type CePredicate interface {
+// CeFilter transforms source cloudEvent in a bool
+type CeFilter interface {
 	PredicateEvent(sourceEvent *cloudevents.Event) (bool, error)
 }
 
-// CePredicateHandler provides callback function for filtering cloudEvents
-type CePredicateHandler struct {
-	predicate CePredicate
+// CeFilterHandler provides callback function for filtering cloudEvents
+type CeFilterHandler struct {
+	predicate CeFilter
 	ceClient  cloudevents.Client
 	debug     bool
 }
 
-// NewPredicateHandler start handling cloudEvents
-func NewPredicateHandler(predicate CePredicate, ceClient cloudevents.Client, debug bool) (*CePredicateHandler, error) {
-	cph := new(CePredicateHandler)
+// NewFilterHandler start handling cloudEvents
+func NewFilterHandler(predicate CeFilter, ceClient cloudevents.Client, debug bool) (*CeFilterHandler, error) {
+	cph := new(CeFilterHandler)
 	cph.predicate = predicate
 	cph.ceClient = ceClient
 	cph.debug = debug
@@ -88,7 +90,7 @@ func NewPredicateHandler(predicate CePredicate, ceClient cloudevents.Client, deb
 }
 
 // HandleCe if predicate is true reply with the sourceEvent , reply with no content otherwise
-func (cph *CePredicateHandler) HandleCe(ctx context.Context, sourceEvent cloudevents.Event) (*cloudevents.Event, protocol.Result) {
+func (cph *CeFilterHandler) HandleCe(ctx context.Context, sourceEvent cloudevents.Event) (*cloudevents.Event, protocol.Result) {
 	reply, err := cph.predicate.PredicateEvent(&sourceEvent)
 	if err != nil {
 		return nil, http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
@@ -97,4 +99,45 @@ func (cph *CePredicateHandler) HandleCe(ctx context.Context, sourceEvent cloudev
 		return &sourceEvent, nil
 	}
 	return nil, http.NewResult(204, "predicate is false")
+}
+
+// CeProducer create new cloudEvent from an input
+type CeProducer interface {
+	CreateEvent(input interface{}) (*cloudevents.Event, error)
+}
+
+// CeProducerHandler provides callback function for producing cloudEvents
+type CeProducerHandler struct {
+	producer CeProducer
+	ceClient cloudevents.Client
+	sink     string
+	debug    bool
+	timeout  time.Duration
+}
+
+// NewProducerHandler create new instance
+func NewProducerHandler(producer CeProducer, ceClient cloudevents.Client, sink string, timeout time.Duration, debug bool) *CeProducerHandler {
+	cph := new(CeProducerHandler)
+	cph.producer = producer
+	cph.ceClient = ceClient
+	cph.sink = sink
+	cph.timeout = timeout
+	cph.debug = debug
+	return cph
+}
+
+// SendCe producer and send cloudEvent
+func (cph *CeProducerHandler) SendCe(input interface{}) protocol.Result {
+	destEvent, err := cph.producer.CreateEvent(input)
+	if err != nil {
+		return http.NewResult(400, "got error %v while producing event from input : %v", err, input)
+	}
+	if cph.debug {
+		log.Printf("sending event: %v", destEvent)
+	}
+	timeoutCtx, cancel := context.WithTimeout(context.Background(), cph.timeout)
+	defer cancel()
+	sendContext := cloudevents.ContextWithTarget(timeoutCtx, cph.sink)
+	result := cph.ceClient.Send(sendContext, *destEvent)
+	return result
 }

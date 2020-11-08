@@ -75,6 +75,11 @@ func (ct *CloudEventTransformer) TransformBytesToEvent(eventMarshalled []byte) (
 	return &resultEvent, nil
 }
 
+// CreateEvent bla
+func (ct *CloudEventTransformer) CreateEvent(input interface{}) (*cloudevents.Event, error) {
+	return ct.TransformEvent(nil)
+}
+
 // TransformEvent bla
 func (ct *CloudEventTransformer) TransformEvent(sourceEvent *cloudevents.Event) (*cloudevents.Event, error) {
 	resultEventBytes, err := ct.transformer.TransformInputToBytes(EventAsInput(sourceEvent))

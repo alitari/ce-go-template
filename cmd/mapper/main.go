@@ -64,7 +64,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	_, err = cetransformer.NewCeTransformHandler(ceTransformer, ceClient, config.Sink, config.Verbose)
+	_, err = cetransformer.NewCeMapperHandler(ceTransformer, ceClient, config.Sink, config.Verbose)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
