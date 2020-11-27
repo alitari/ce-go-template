@@ -6,13 +6,61 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alitari/ce-go-template)](https://goreportcard.com/report/github.com/alitari/ce-go-template)
 [![codecov](https://codecov.io/gh/alitari/ce-go-template/branch/main/graph/badge.svg)](https://codecov.io/gh/alitari/ce-go-template)
 
-With the following services you can produce, transform and filter a [CloudEvent] with the [go template] syntax.
+There are 3 kinds of services for transforming a [CloudEvent] with the [go template] syntax:
 
-| Name ( image) | Description |
-| --------------| ----------- |
-| `ce-go-template-producer` | creates new cloud events frequently and send them to an [event sink]. In [knative] it can be applied as an event source using a [ContainerSource] or a [Sinkbinding] |
-| `ce-go-template-mapper` | transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either sent to the sink ( *send mode*), or is the payload of the http response (*reply mode*) |
-| `ce-go-template-filter` | replies with the incoming CloudEvent, if a predicate resolves to true. Otherwise the response has no content. In [knative] a filter can be applied in [Flows] like [Parallel] |
+- producers
+- mappers
+- filters
+
+## producers
+
+```txt
+Input --> **Go-Template for building CloudEvents** --> CloudEvent
+```
+
+Go-Template transforms an input data structure to a cloudEvent and sends them to an [event sink]. In [knative] a producer can be applied as an event source using a [ContainerSource] or a [Sinkbinding] 
+
+### `ce-go-template-producer`
+
+This producer has no input. The transformation is triggerd by a constant frequence which is configurable.
+
+### `ce-go-template-http-producer`
+
+In this producer the transformation is triggered by an incoming http request.
+
+## mappers
+
+A mapper transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either sent to the sink ( *send mode*), or is the payload of the http response (*reply mode*) 
+
+### `ce-go-template-mapper`
+
+```txt
+CloudEvent --> **Go-Template for building CloudEvent** --> CloudEvent
+```
+
+### `ce-go-template-http-mapper`
+
+```txt
+CloudEvent --> **Go-Template for building HTTP-Request** --> Send HTTP-Request --> HTTP-Response -> **Go-Template for building CloudEvent** --> CloudEvent 
+```
+
+## filters
+
+A filter replies with the incoming CloudEvent, if a predicate built by a go-template resolves to true. Otherwise the response has no content. In [knative] a filter can be applied in [Flows] like [Parallel]
+
+### `ce-go-template-filter`
+
+```txt
+CloudEvent --> **Go-Template for building a boolean** --> CloudEvent if true, nothing otherwise
+```
+
+### `ce-go-template-http-filter`
+
+```txt
+CloudEvent --> **Go-Template for building HTTP-Request** --> Send HTTP-Request --> HTTP-Response --> **Go-Template for building a boolean** --> CloudEvent if true, nothing otherwise
+```
+
+
 
 ## usage
 
@@ -61,11 +109,21 @@ The simplest go-template for a filter is an empty string (`""`) which implements
 | `TIMEOUT` | duration for timeout when sending CloudEvent to sink |`1000ms`| :heavy_check_mark: | :heavy_minus_sign: | :heavy_minus_sign: |
 
 
-## use cases examples
+## examples
 
 As the go-template includes the [sprig functions] you can use built-in functionality for math, security/encryption, etc.
 
-### eliminate duplicates
+### producer
+
+#### producing random CloudEvents
+
+```bash
+CE_TEMPLATE='{{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
+```
+
+### mapper
+
+#### eliminate duplicates
 
 ```bash
 CE_TEMPLATE='{{ $people := .data.people | uniq }} { "people": {{ toJson $people }} }' go run cmd/mapper/main.go
@@ -73,7 +131,7 @@ CE_TEMPLATE='{{ $people := .data.people | uniq }} { "people": {{ toJson $people 
 http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" people:='[ { "name": "Bob", "age": "23" }, { "name": "John", "age": "17" } , {"name": "Bill", "age": "70"}, { "name": "Bob", "age": "23" } ]'
 ```
 
-### grouping
+#### grouping
 
 ```bash
 CE_TEMPLATE='{{ $people := .data.people }} {{ $adults := list }} {{ $children := list }} {{ range $people }} {{ $age := .age | atoi }} {{ if gt $age 17 }} {{ $adults = append $adults . }}{{ else }}{{ $children = append $children . }}{{ end }} {{ end }}{ "adults": {{ toJson $adults }}, "children": {{ toJson $children }} }' go run cmd/mapper/main.go
@@ -81,7 +139,7 @@ CE_TEMPLATE='{{ $people := .data.people }} {{ $adults := list }} {{ $children :=
 http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" people:='[ { "name": "Bob", "age": "23" }, { "name": "John", "age": "17" } , {"name": "Bill", "age": "70"} ]'
 ```
 
-### encrypt/decrypt secret parts of event payload
+#### encrypt/decrypt secret parts of event payload
 
 ```bash
 # encrypt
@@ -98,11 +156,25 @@ CE_TEMPLATE='{ "foo": {{ toJson .data.foo }}, "secret": {{ .data.secret | decryp
 http --print=Bhb POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" foo=foovalue secret=$ENCRYPTED_SECRET
 ```
 
-### producing random CloudEvents
+#### enrich content with external services
 
 ```bash
-CE_TEMPLATE='{{ $rand :=  randNumeric 1 | atoi }} { "data": { {{ if gt $rand 5 }} "foo": "foovalue" {{ else }} "bar": "barvalue" {{ end }} } , "datacontenttype":"application/json","id": {{ uuidv4 | quote }}, "source":"random producer","specversion":"1.0","type":"random producer type" }' K_SINK=https://httpbin.org/post go run cmd/producer/main.go
+HTTP_TEMPLATE="GET https://api.genderize.io?name={{ .data.name }} HTTP/1.1"$'\n'"content-type: application/json"$'\n'$'\n' CE_TEMPLATE='{ "name": {{ .inputce.data.name | quote }}, "gender": {{ .httpresponse.body.gender | quote }} }' go run cmd/http-mapper/main.go
+
+http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" name=Sabine
 ```
+
+### filter
+
+#### filter with external services
+
+```bash
+HTTP_TEMPLATE="GET https://api.genderize.io?name={{ .data.name }} HTTP/1.1"$'\n'"content-type: application/json"$'\n'$'\n' CE_TEMPLATE='{{ eq .httpresponse.body.gender "female" | toString }}' go run cmd/http-filter/main.go
+
+## with male surname you will get 204
+http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" name=Sabine
+```
+
 
 ## deployment options in [knative]
 

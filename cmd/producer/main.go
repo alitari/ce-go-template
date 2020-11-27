@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
+	"github.com/alitari/ce-go-template/pkg/cehandler"
 	"github.com/alitari/ce-go-template/pkg/cetransformer"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -14,20 +14,23 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-var ceTransformer = &cetransformer.CloudEventTransformer{}
+var ceTransformer *cetransformer.CloudEventTransformer
 var ceClient cloudevents.Client = nil
+var ceProducerHandler *cehandler.CeProducerHandler
 
 // Configuration bla
 type Configuration struct {
 	Verbose    bool   `default:"true"`
-	CeTemplate string `split_words:"true" default:"{ \"data\":{\"name\":\"Alex\"}, \"datacontenttype\":\"application/json\",\"id\":\" {{ uuidv4 }}\",\"source\":\"ce-gotemplate\",\"specversion\":\"1.0\",\"type\":\"test\" }"`
+	CeTemplate string `split_words:"true" default:"{\"name\":\"Alex\"}"`
+	CeSource   string `split_words:"true" default:"ce-go-template-producer"`
+	CeType     string `split_words:"true" default:"default-type"`
 	Sink       string `envconfig:"K_SINK"`
 	Period     string `default:"1000ms"`
 	Timeout    string `default:"1000ms"`
 }
 
 func (c Configuration) info() string {
-	return fmt.Sprintf("Configuration:\n====================================\nVerbose: %v\nPeriod: %v\nTimeout: %v\nSink: '%v'\nCeTemplate: '%v'\n", c.Verbose, c.Period, c.Timeout, c.Sink, c.CeTemplate)
+	return fmt.Sprintf("Configuration:\n====================================\nVerbose: %v\nPeriod: %v\nTimeout: %v\nSink: '%v'\nCeTemplate: '%v'\ncloudEvent source: %s\ncloudEvent type: %s", c.Verbose, c.Period, c.Timeout, c.Sink, c.CeTemplate, c.CeSource, c.CeType)
 }
 
 func main() {
@@ -36,12 +39,6 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Print(config.info())
-
-	// if _, err := url.ParseRequestURI(config.Sink); err != nil {
-	// 	log.Fatalf("error with K_SINK: %v", err)
-	// }
-
-	ceTransformer.Config = cetransformer.CloudEventTransformerConfig{CeTemplate: config.CeTemplate, Debug: config.Verbose}
 
 	var err error
 
@@ -58,24 +55,19 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	ceTransformer.Init()
+	ceTransformer, err := cetransformer.NewCloudEventTransformer(config.CeTemplate, config.Verbose)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	ceProducerHandler = cehandler.NewProducerHandler(ceTransformer, config.Sink, timeout, config.Verbose)
+
 	ticker := time.NewTicker(duration)
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				destEvent, err := ceTransformer.TransformEvent(nil)
-				if err != nil {
-					log.Fatal(err.Error())
-				}
-				if config.Verbose {
-					log.Printf("Sending event to: '%s'", config.Sink)
-				}
-
-				timeoutCtx, cancel := context.WithTimeout(context.Background(), timeout)
-				defer cancel()
-				sendCtx := cloudevents.ContextWithTarget(timeoutCtx, config.Sink)
-				result := ceClient.Send(sendCtx, *destEvent)
+				result := ceProducerHandler.SendCe(nil)
 				re := result.Error()
 				if !strings.HasPrefix(re, "20") {
 					log.Printf("Failed to send event! error: %v", result.Error())
@@ -92,5 +84,4 @@ func main() {
 		}
 	}()
 	select {}
-
 }
