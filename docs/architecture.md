@@ -16,21 +16,23 @@ package "cehandler" {
   [httpserver] ..> [ceProducerHandler]
 }
 
-package "cerequesttransformer" {
-    CeProducer -- [requesttransformer]
-}
-
-package "cehttpclienttransformer" {
-    CeMapper -- [cehttpclienttransformer]
-    CeFilter -- [cehttpclienttransformer]
-    [cehttpclienttransformer] ..> [cetransformer]
-}
-
 package "cetransformer" {
     CeMapper -- [cetransformer]
     CeFilter -- [cetransformer]
     CeProducer -- [cetransformer]
 }
+
+package "cerequesttransformer" {
+    CeProducer --- [requesttransformer]
+}
+
+package "cehttpclienttransformer" {
+    CeMapper --- [cehttpclienttransformer]
+    CeFilter --- [cehttpclienttransformer]
+    [cehttpclienttransformer] ..> [cetransformer]
+    [cehttpclienttransformer] .> [httpProtocolSender]
+}
+
 
 package "transformer" {
   [transform]
