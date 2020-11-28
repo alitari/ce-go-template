@@ -64,7 +64,7 @@ func CompareEvents(t *testing.T, message string, actualEvent, wantedEvent cloude
 		return false
 	}
 	if bytes.Compare(actualEvent.Data(), wantedEvent.Data()) != 0 {
-		t.Errorf("%s. payload not equal. actual = '%v', want '%v'", message, actualEvent, wantedEvent.Data())
+		t.Errorf("%s. payload not equal. actual = '%v', want '%v'", message, actualEvent, wantedEvent)
 		return false
 	}
 	return true

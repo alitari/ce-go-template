@@ -12,14 +12,20 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
+// HTTPSender bla
+type HTTPSender interface {
+	Send() (*http.Response, error)
+}
+
 // Config bla
 type Config struct {
-	HTTPTemplate string
-	CeTemplate   string
-	Timeout      time.Duration
-	JSONBody     bool
-	OnlyPayload  bool
-	Debug        bool
+	SenderCreator func(string, time.Duration, bool) (HTTPSender, error)
+	HTTPTemplate  string
+	CeTemplate    string
+	Timeout       time.Duration
+	JSONBody      bool
+	OnlyPayload   bool
+	Debug         bool
 }
 
 // CeHTTPClientTransformer bla
@@ -33,18 +39,25 @@ type CeHTTPClientTransformer struct {
 
 // NewCeHTTPClientTransformer bla
 func NewCeHTTPClientTransformer(httpTemplate string, ceTemplate string, timeout time.Duration, jsonBody bool, onlyPayload bool, debug bool) (*CeHTTPClientTransformer, error) {
+	return ceHTTPClientTransformer(func(protocol string, timeOut time.Duration, debug bool) (HTTPSender, error) {
+		return NewHTTPProtocolSender(protocol, timeOut, debug)
+	}, httpTemplate, ceTemplate, timeout, jsonBody, onlyPayload, debug)
+}
+
+func ceHTTPClientTransformer(senderCreator func(string, time.Duration, bool) (HTTPSender, error), httpTemplate string, ceTemplate string, timeout time.Duration, jsonBody bool, onlyPayload bool, debug bool) (*CeHTTPClientTransformer, error) {
 	cht := new(CeHTTPClientTransformer)
-	cht.config = Config{HTTPTemplate: httpTemplate, CeTemplate: ceTemplate, Timeout: timeout, JSONBody: jsonBody, OnlyPayload: onlyPayload, Debug: debug}
+	cht.config = Config{SenderCreator: senderCreator, HTTPTemplate: httpTemplate, CeTemplate: ceTemplate, Timeout: timeout, JSONBody: jsonBody, OnlyPayload: onlyPayload, Debug: debug}
 	httpTransformer, err := transformer.NewTransformer(cht.config.HTTPTemplate, nil, cht.config.Debug)
 	if err != nil {
 		return nil, err
 	}
+	cht.httpTransformer = httpTransformer
 	ceTransformer, err := transformer.NewTransformer(cht.config.CeTemplate, nil, cht.config.Debug)
 	if err != nil {
 		return nil, err
 	}
-	cht.httpTransformer = httpTransformer
 	cht.ceTransformer = ceTransformer
+
 	return cht, nil
 }
 
@@ -55,7 +68,7 @@ func (ct *CeHTTPClientTransformer) TransformEvent(sourceEvent *cloudevents.Event
 	if err != nil {
 		return nil, err
 	}
-	sender, err := NewHTTPProtocolSender(string(httpBytes), ct.config.Timeout, ct.config.Debug)
+	sender, err := ct.config.SenderCreator(string(httpBytes), ct.config.Timeout, ct.config.Debug)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +102,7 @@ func (ct *CeHTTPClientTransformer) PredicateEvent(sourceEvent *cloudevents.Event
 	if err != nil {
 		return false, err
 	}
-	sender, err := NewHTTPProtocolSender(string(httpBytes), ct.config.Timeout, ct.config.Debug)
+	sender, err := ct.config.SenderCreator(string(httpBytes), ct.config.Timeout, ct.config.Debug)
 	if err != nil {
 		return false, err
 	}
@@ -114,18 +127,21 @@ func ResponseToMap(response *http.Response, jsonBody bool) (map[string]interface
 	responseMap := map[string]interface{}{}
 	if response != nil {
 		responseMap["header"] = response.Header
+		responseMap["status"] = response.Status
 		responseMap["statusCode"] = response.StatusCode
-		b := new(bytes.Buffer)
-		io.Copy(b, response.Body)
-		response.Body.Close()
-		if jsonBody {
-			bodyData := map[string]interface{}{}
-			if err := json.Unmarshal(b.Bytes(), &bodyData); err != nil {
-				return nil, err
+		if response.Body != nil {
+			b := new(bytes.Buffer)
+			io.Copy(b, response.Body)
+			response.Body.Close()
+			if jsonBody {
+				bodyData := map[string]interface{}{}
+				if err := json.Unmarshal(b.Bytes(), &bodyData); err != nil {
+					return nil, err
+				}
+				responseMap["body"] = bodyData
+			} else {
+				responseMap["body"] = b.String()
 			}
-			responseMap["body"] = bodyData
-		} else {
-			responseMap["body"] = b.String()
 		}
 	}
 	return responseMap, nil
