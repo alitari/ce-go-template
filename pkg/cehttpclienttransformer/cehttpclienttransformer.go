@@ -61,8 +61,7 @@ func ceHTTPClientTransformer(senderCreator func(string, time.Duration, bool) (HT
 	return cht, nil
 }
 
-// TransformEvent bla
-func (ct *CeHTTPClientTransformer) TransformEvent(sourceEvent *cloudevents.Event) (*cloudevents.Event, error) {
+func (ct *CeHTTPClientTransformer) transformEventToBytes(sourceEvent *cloudevents.Event) ([]byte, error) {
 	inputEventData := cetransformer.EventToMap(sourceEvent)
 	httpBytes, err := ct.httpTransformer.TransformInputToBytes(inputEventData)
 	if err != nil {
@@ -84,8 +83,20 @@ func (ct *CeHTTPClientTransformer) TransformEvent(sourceEvent *cloudevents.Event
 	input["inputce"] = inputEventData
 	input["httpresponse"] = respData
 	eventBytes, err := ct.ceTransformer.TransformInputToBytes(input)
-	result := cloudevents.NewEvent()
+	if err != nil {
+		return nil, err
+	}
+	return eventBytes, nil
+}
 
+// TransformEvent bla
+func (ct *CeHTTPClientTransformer) TransformEvent(sourceEvent *cloudevents.Event) (*cloudevents.Event, error) {
+	eventBytes, err := ct.transformEventToBytes(sourceEvent)
+	if err != nil {
+		return nil, err
+	}
+
+	result := cloudevents.NewEvent()
 	if err := cetransformer.Unmarshal(eventBytes, &result); err != nil {
 		return nil, err
 	}
@@ -97,27 +108,10 @@ func (ct *CeHTTPClientTransformer) TransformEvent(sourceEvent *cloudevents.Event
 
 // PredicateEvent bla
 func (ct *CeHTTPClientTransformer) PredicateEvent(sourceEvent *cloudevents.Event) (bool, error) {
-	inputEventData := cetransformer.EventToMap(sourceEvent)
-	httpBytes, err := ct.httpTransformer.TransformInputToBytes(inputEventData)
+	booleanBytes, err := ct.transformEventToBytes(sourceEvent)
 	if err != nil {
 		return false, err
 	}
-	sender, err := ct.config.SenderCreator(string(httpBytes), ct.config.Timeout, ct.config.Debug)
-	if err != nil {
-		return false, err
-	}
-	resp, err := sender.Send()
-	if err != nil {
-		return false, err
-	}
-	respData, err := ResponseToMap(resp, ct.config.JSONBody)
-	if err != nil {
-		return false, err
-	}
-	input := map[string]interface{}{}
-	input["inputce"] = inputEventData
-	input["httpresponse"] = respData
-	booleanBytes, err := ct.ceTransformer.TransformInputToBytes(input)
 	resultStr := string(booleanBytes)
 	return resultStr == "true", nil
 }
