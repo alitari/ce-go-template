@@ -1,165 +1,72 @@
 package cehttpserver
 
 import (
-	"context"
-	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/alitari/ce-go-template/pkg/cehandler"
-	"github.com/alitari/ce-go-template/pkg/cerequesttransformer"
+	"github.com/alitari/ce-go-template/pkg/cetransformer"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/cloudevents/sdk-go/v2/protocol"
 )
 
-var sinkPort = 8099
+var input = "input"
 
-func createProducerHandler(cetemplate string) (*cehandler.CeProducerHandler, error) {
-	producer, err := cerequesttransformer.NewRequestTransformer(cetemplate, "type", "source", true)
-	if err != nil {
-		return nil, err
-	}
-	httpProtocol, err := cloudevents.NewHTTP() // http.WithShutdownTimeout(5 * time.Second)
-	if err != nil {
-		log.Fatalf("failed to create protocol: %s", err.Error())
-	}
-	ceClient, err := cloudevents.NewClient(httpProtocol)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	return cehandler.NewProducerHandler(producer, ceClient, fmt.Sprintf("http://localhost:%v/", sinkPort), 5*time.Second, true), nil
+var client = &http.Client{}
+
+type CeProducerMock struct {
+	t             *testing.T
+	wantInputPath string
+	wantInputBody string
+	outgoingEvent cloudevents.Event
+	shouldThrow   error
 }
 
-type SinkServer struct {
-	t              *testing.T
-	expectedSource string
-	expectedType   string
-	expectedBody   string
-	srv            *http.Server
+func (pm *CeProducerMock) CreateEvent(input interface{}) (*cloudevents.Event, error) {
+	inputReq := input.(http.Request)
+	if inputReq.URL.Path != pm.wantInputPath {
+		pm.t.Errorf("CeProducerMock, unexpected request path: actual: %v, but want %v", inputReq.URL.Path, pm.wantInputPath)
+	}
+	return &pm.outgoingEvent, pm.shouldThrow
 }
 
-func setupSink(t *testing.T, expectedSource string, expectedType string, expectedBody string) *SinkServer {
-	sink := new(SinkServer)
-	sink.expectedSource = expectedSource
-	sink.expectedType = expectedType
-	sink.expectedBody = expectedBody
-	sink.t = t
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", sink.assertResultMessage)
-	sink.srv = &http.Server{Addr: fmt.Sprintf(":%v", sinkPort), Handler: mux}
-
-	go func() {
-		if err := sink.srv.ListenAndServe(); err != nil {
-			log.Printf("sink.listenAndServe: %v", err)
-		}
-	}()
-	return sink
-}
-
-func (s *SinkServer) ShutDown() error {
-	if err := s.srv.Shutdown(context.TODO()); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *SinkServer) assertResultMessage(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Result received, %v!", r)
-
-	actualSource := r.Header["Ce-Source"][0]
-	actualType := r.Header["Ce-Type"][0]
-
-	if s.expectedSource != actualSource {
-		s.t.Errorf("cehttpservertransformer sink request source header not equal: actual = '%s', want '%s'", actualSource, s.expectedSource)
-	}
-
-	if s.expectedType != actualType {
-		s.t.Errorf("cehttpservertransformer sink request type header not equal: actual = '%s', want '%s'", actualType, s.expectedType)
-	}
-
-	actualbody, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		s.t.Errorf("cehttpservertransformer sink error reading request body : %v", err)
-	}
-
-	actualbodyStr := string(actualbody)
-	if s.expectedBody != actualbodyStr {
-		s.t.Errorf("cehttpservertransformer sink request body not equal: actual = '%s', want '%s'", actualbodyStr, s.expectedBody)
-	}
-
-}
-
-// ("GET", fmt.Sprintf("http://localhost:%v%s", tt.port, tt.path), nil)
-func NewRequest(method string, port int, path string, body string) *http.Request {
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%v%s", port, path), strings.NewReader(body))
-	if err != nil {
-		log.Fatalf("Can't create request error = %v", err)
-		return nil
-	}
-	return req
-}
-
-func Testcehttpservertransformer(t *testing.T) {
+func TestCeHTTPServer_Serve(t *testing.T) {
 	tests := []struct {
-		name                  string
-		givenServerPort       int
-		givenServerPath       string
-		givenServerMethod     string
-		givenServerCetemplate string
-		whenRequest           *http.Request
-		thenWantErr           bool
-		thenWantSource        string
-		thenWantType          string
-		thenWantBody          string
+		name                   string
+		givenProducerEvent     cloudevents.Event
+		givenProducerError     protocol.Result
+		givenCeClientSendError error
+		givenServerPort        int
+		givenServerMethod      string
+		givenServerPath        string
+		whenHTTPRequest        http.Request
+		thenWantInputPath      string
+		thenWantHTTPResponse   *http.Response
 	}{
 		{
-			name:            "constant",
-			givenServerPort: 8080, givenServerPath: "/path", givenServerMethod: "GET", givenServerCetemplate: `
-{ "data": "",
-	"datacontenttype":"application/json",
-	"id": "{{ uuidv4 }}",
-	"source": "testsource",
-	"specversion": "1.0",
-	"type": "type" 
-}`,
-			whenRequest:    NewRequest("GET", 8080, "/path", "doesn't matter"),
-			thenWantSource: "testsource", thenWantType: "type", thenWantBody: `""`},
-		{
-			name:            "simple",
-			givenServerPort: 8080, givenServerPath: "/path", givenServerMethod: "GET", givenServerCetemplate: `
-{ "data": "",
-	"datacontenttype":"application/json",
-	"id": "{{ uuidv4 }}",
-	"source": "testsource",
-	"specversion": "1.0",
-	"type": "type" 
-}`,
-			whenRequest:    NewRequest("GET", 8080, "/path", "doesn't matter"),
-			thenWantSource: "testsource", thenWantType: "type", thenWantBody: `""`},
+			name:                 "Simple",
+			givenServerMethod:    "GET",
+			givenServerPath:      "/path",
+			givenServerPort:      8088,
+			givenProducerEvent:   cetransformer.NewEventWithJSONStringData(`{ "foo": "bar" }`),
+			whenHTTPRequest:      *cetransformer.NewGETRequest("http://localhost:8088/path"),
+			thenWantInputPath:    "/path",
+			thenWantHTTPResponse: &http.Response{Status: "200 OK"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sink := setupSink(t, tt.thenWantSource, tt.thenWantType, tt.thenWantBody)
-			producerHandler, err := createProducerHandler(tt.givenServerCetemplate)
-			if (err != nil) != tt.thenWantErr {
-				t.Errorf("cehttpservertransformer error = %v, wantErr %v", err, tt.thenWantErr)
-				return
+			ceProducer := &CeProducerMock{t: t, wantInputPath: tt.thenWantInputPath, outgoingEvent: tt.givenProducerEvent, shouldThrow: tt.givenProducerError}
+			ceClient := &cetransformer.CeClientMock{T: t, WantSend: true, WantSendEvent: tt.givenProducerEvent, ShouldThrowErrorOnSend: tt.givenCeClientSendError}
+			ceProducerHandler := cehandler.NewProducerHandler(ceProducer, ceClient, "sink", 3*time.Second, true)
+			ceHTTPServer := NewCeHTTPServer(tt.givenServerPort, tt.givenServerPath, tt.givenServerMethod, true, ceProducerHandler)
+			defer ceHTTPServer.ShutDown()
+			time.Sleep(100 * time.Millisecond)
+			response, err := client.Do(&tt.whenHTTPRequest)
+			if err != nil {
+				t.Errorf("Couldn't send request= '%v', error: %v", tt.whenHTTPRequest, err)
 			}
-			cehttpservertransformer := NewCeHTTPServer(tt.givenServerPort, tt.givenServerPath, tt.givenServerMethod, true, producerHandler)
-			resp, err := http.DefaultClient.Do(tt.whenRequest)
-			if (err != nil) != tt.thenWantErr {
-				t.Errorf("cehttpservertransformer error = %v, wantErr %v", err, tt.thenWantErr)
-			}
-			if resp.StatusCode != 200 {
-				t.Errorf("cehttpservertransformer expect 200 response, but is %v", resp.StatusCode)
-			}
-			time.Sleep(1 * time.Second)
-			cehttpservertransformer.ShutDown()
-			sink.ShutDown()
-			time.Sleep(1 * time.Second)
+			cetransformer.CompareResponses(t, "CeHTTPServer", *response, *tt.thenWantHTTPResponse)
 		})
 	}
 }

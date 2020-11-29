@@ -60,7 +60,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	ceProducerHandler = cehandler.NewProducerHandler(ceTransformer, config.Sink, timeout, config.Verbose)
+	ceProducerHandler = cehandler.NewProducerHandler(ceTransformer, ceClient, config.Sink, timeout, config.Verbose)
 
 	ticker := time.NewTicker(duration)
 	go func() {

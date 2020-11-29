@@ -3,13 +3,13 @@ package cehandler
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/alitari/ce-go-template/pkg/cetransformer"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	"github.com/cloudevents/sdk-go/v2/protocol/http"
+	"github.com/google/go-cmp/cmp"
 )
 
 type CeMapperMock struct {
@@ -20,39 +20,10 @@ type CeMapperMock struct {
 }
 
 func (mm *CeMapperMock) TransformEvent(sourceEvent *cloudevents.Event) (*cloudevents.Event, error) {
-	if !reflect.DeepEqual(mm.wantIncomingEvent, *sourceEvent) {
+	if !cmp.Equal(mm.wantIncomingEvent, *sourceEvent) {
 		mm.t.Errorf("CeMapperMock, unexpected sourceEvent: actual: %v, but want %v", *sourceEvent, mm.wantIncomingEvent)
 	}
 	return &mm.outgoingEvent, mm.shouldThrow
-}
-
-type CeClientMock struct {
-	t                       *testing.T
-	wantSend                bool
-	wantSendEvent           cloudevents.Event
-	shouldThrowErrorOnStart error
-	shouldThrowErrorOnSend  error
-}
-
-func (mm *CeClientMock) StartReceiver(ctx context.Context, fn interface{}) error {
-	mm.t.Logf("Callback func : %v", fn)
-	return mm.shouldThrowErrorOnStart
-}
-
-func (mm *CeClientMock) Send(ctx context.Context, event cloudevents.Event) protocol.Result {
-	if !mm.wantSend {
-		mm.t.Errorf("CeClientMock, Send should not be called: wantSend: %v", mm.wantSend)
-	}
-	if !reflect.DeepEqual(mm.wantSendEvent, event) {
-		mm.t.Errorf("CeClientMock, unexpected sourceEvent: actual: %v, but want %v", event, mm.wantSendEvent)
-	}
-	return mm.shouldThrowErrorOnSend
-
-}
-
-func (mm *CeClientMock) Request(ctx context.Context, event cloudevents.Event) (*cloudevents.Event, protocol.Result) {
-	mm.t.Errorf("CeClientMock, unexpected call: 'Request'")
-	return nil, nil
 }
 
 func TestCeMapperHandler_ReceiveSendCe(t *testing.T) {
@@ -77,7 +48,7 @@ func TestCeMapperHandler_ReceiveSendCe(t *testing.T) {
 			whenIncomingEvent := cetransformer.NewEventWithJSONStringData(`{"foo": "foo"}`)
 			wantSendEvent := cetransformer.NewEventWithJSONStringData(`{"foo": "bar"}`)
 			ceMapper := &CeMapperMock{t: t, wantIncomingEvent: whenIncomingEvent, outgoingEvent: wantSendEvent, shouldThrow: tt.givenCeMapperError}
-			ceClient := &CeClientMock{t: t, wantSend: true, wantSendEvent: wantSendEvent, shouldThrowErrorOnStart: tt.givenCeClientStartError, shouldThrowErrorOnSend: tt.givenCeClientSendError}
+			ceClient := &cetransformer.CeClientMock{T: t, WantSend: true, WantSendEvent: wantSendEvent, ShouldThrowErrorOnStart: tt.givenCeClientStartError, ShouldThrowErrorOnSend: tt.givenCeClientSendError}
 
 			ceMapperHandler, err := NewCeMapperHandler(ceMapper, ceClient, "sink", true)
 			if !cetransformer.CompareErrors(t, "NewCeMapperHandler", err, tt.thenWantMapperHandlerError) {
@@ -112,7 +83,7 @@ func TestCeMapperHandler_ReceiveReplyCe(t *testing.T) {
 			whenIncomingEvent := cetransformer.NewEventWithJSONStringData(`{"foo": "foo"}`)
 			wantSendEvent := cetransformer.NewEventWithJSONStringData(`{"foo": "bar"}`)
 			ceMapper := &CeMapperMock{t: t, wantIncomingEvent: whenIncomingEvent, outgoingEvent: wantSendEvent, shouldThrow: tt.givenCeMapperError}
-			ceClient := &CeClientMock{t: t, wantSend: false, wantSendEvent: wantSendEvent, shouldThrowErrorOnStart: tt.givenCeClientStartError}
+			ceClient := &cetransformer.CeClientMock{T: t, WantSend: false, WantSendEvent: wantSendEvent, ShouldThrowErrorOnStart: tt.givenCeClientStartError}
 
 			ceMapperHandler, err := NewCeMapperHandler(ceMapper, ceClient, "sink", true)
 			if !cetransformer.CompareErrors(t, "NewCeMapperHandler", err, tt.thenWantMapperHandlerError) {

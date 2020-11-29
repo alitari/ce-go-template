@@ -3,8 +3,9 @@ package cehandler
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/alitari/ce-go-template/pkg/cetransformer"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -20,7 +21,7 @@ type CeFilterMock struct {
 }
 
 func (fm *CeFilterMock) PredicateEvent(sourceEvent *cloudevents.Event) (bool, error) {
-	if !reflect.DeepEqual(fm.wantIncomingEvent, *sourceEvent) {
+	if !cmp.Equal(fm.wantIncomingEvent, *sourceEvent) {
 		fm.t.Errorf("CeFilterMock, unexpected sourceEvent: actual: %v, but want %v", *sourceEvent, fm.wantIncomingEvent)
 	}
 	return fm.wantPredicate, fm.shouldThrow
@@ -50,7 +51,7 @@ func TestCeFilterHandler_HandleCe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ceFilter := &CeFilterMock{t: t, wantIncomingEvent: tt.givenIncomingEvent, wantPredicate: tt.whenCeFilterPredicate, shouldThrow: tt.givenCeFilterError}
-			ceClient := &CeClientMock{t: t, wantSend: false, shouldThrowErrorOnStart: tt.givenCeClientStartError}
+			ceClient := &cetransformer.CeClientMock{T: t, WantSend: false, ShouldThrowErrorOnStart: tt.givenCeClientStartError}
 
 			ceFilterHandler, err := NewCeFilterHandler(ceFilter, ceClient, true)
 			if !cetransformer.CompareErrors(t, "NewCeFilterHandler", err, tt.thenWantFilterHandlerError) {

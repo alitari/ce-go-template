@@ -47,7 +47,7 @@ func TestCeProducerHandler_SendCe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ceProducer := &CeProducerMock{t: t, wantInput: input, outgoingEvent: outgoingEvent, shouldThrow: tt.givenProducerError}
-			ceClient := &CeClientMock{t: t, wantSend: true, wantSendEvent: outgoingEvent, shouldThrowErrorOnSend: tt.givenCeClientSendError}
+			ceClient := &cetransformer.CeClientMock{T: t, WantSend: true, WantSendEvent: outgoingEvent, ShouldThrowErrorOnSend: tt.givenCeClientSendError}
 			ceProcuderHandler := NewProducerHandler(ceProducer, ceClient, "sink", 3*time.Second, true)
 			result := ceProcuderHandler.SendCe(input)
 			if !cetransformer.CompareErrors(t, "CeProducerHandler.SendCe", result, tt.thenWantResult) {

@@ -1,9 +1,7 @@
 package cerequesttransformer
 
 import (
-	"log"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/alitari/ce-go-template/pkg/cetransformer"
@@ -26,7 +24,7 @@ func TestRequestTransformer(t *testing.T) {
 			givenCeTemplate: `{ "method": {{ .method | quote }} , "header": {{ .header | toJson }}, "url": {{ .url | toJson }}, "body": {{ .body | toJson }} }`,
 			givenCeSource:   "mysource",
 			givenCeType:     "mytype",
-			whenRequest:     NewReq("GET", map[string][]string{"Content-Type": {"application/json"}}, "http://foo.bar:8080/mypath", `{ "name": "Alex" }`),
+			whenRequest:     cetransformer.NewReq("GET", map[string][]string{"Content-Type": {"application/json"}}, "http://foo.bar:8080/mypath", `{ "name": "Alex" }`),
 			thenWantError:   false,
 			thenWantEvent: cetransformer.NewEventWithJSONStringData(`
 {
@@ -64,14 +62,4 @@ func TestRequestTransformer(t *testing.T) {
 
 		})
 	}
-}
-
-func NewReq(method string, header http.Header, url, body string) *http.Request {
-	req, err := http.NewRequest(method, url, strings.NewReader(body))
-	req.Header = header
-	if err != nil {
-		log.Fatalf("Can't create request error = %v", err)
-		return nil
-	}
-	return req
 }

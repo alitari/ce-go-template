@@ -50,6 +50,6 @@ func (chs *CeHTTPServer) ShutDown() error {
 func (chs *CeHTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("received request: %v", r)
 	result := chs.producerHandler.SendCe(*r)
-	log.Printf("SendCe result: %s", result.Error())
+	log.Printf("SendCe result: %s", result)
 	io.WriteString(w, "event successfully sent!\n")
 }
