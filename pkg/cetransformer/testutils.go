@@ -69,3 +69,19 @@ func CompareEvents(t *testing.T, message string, actualEvent, wantedEvent cloude
 	}
 	return true
 }
+
+// CompareErrors true if events are "equal"
+func CompareErrors(t *testing.T, message string, actualError, wantedError error) bool {
+	if actualError == nil && wantedError == nil {
+		return true
+	}
+	if actualError != nil && wantedError != nil {
+		if actualError.Error() != wantedError.Error() {
+			t.Errorf("%s unexpected error result, actual = '%v', want =  '%v'", message, actualError, wantedError)
+			return false
+		}
+		return true
+	}
+	t.Errorf("%s unexpected error result, actual = '%v', want =  '%v'", message, actualError, wantedError)
+	return false
+}
