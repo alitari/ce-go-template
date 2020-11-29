@@ -56,7 +56,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	_, err = cehandler.NewFilterHandler(transformer, ceClient, config.Verbose)
+	_, err = cehandler.NewCeFilterHandler(transformer, ceClient, config.Verbose)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
