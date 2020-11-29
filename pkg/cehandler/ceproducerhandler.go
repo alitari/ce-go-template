@@ -24,18 +24,18 @@ type CeProducerHandler struct {
 	timeout  time.Duration
 }
 
+// httpProtocol, err := cloudevents.NewHTTP(http.WithShutdownTimeout(timeout))
+// if err != nil {
+// 	log.Fatalf("failed to create protocol: %s", err.Error())
+// }
+// ceClient, err := cloudevents.NewClient(httpProtocol)
+// if err != nil {
+// 	log.Fatal(err.Error())
+// }
 // NewProducerHandler create new instance
-func NewProducerHandler(producer CeProducer, sink string, timeout time.Duration, debug bool) *CeProducerHandler {
+func NewProducerHandler(producer CeProducer, ceClient cloudevents.Client, sink string, timeout time.Duration, debug bool) *CeProducerHandler {
 	cph := new(CeProducerHandler)
 	cph.producer = producer
-	httpProtocol, err := cloudevents.NewHTTP(http.WithShutdownTimeout(timeout))
-	if err != nil {
-		log.Fatalf("failed to create protocol: %s", err.Error())
-	}
-	ceClient, err := cloudevents.NewClient(httpProtocol)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
 	cph.ceClient = ceClient
 	cph.sink = sink
 	cph.timeout = timeout

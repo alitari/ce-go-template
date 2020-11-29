@@ -12,6 +12,7 @@ import (
 
 	"github.com/alitari/ce-go-template/pkg/cehandler"
 	"github.com/alitari/ce-go-template/pkg/cerequesttransformer"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 var sinkPort = 8099
@@ -21,7 +22,15 @@ func createProducerHandler(cetemplate string) (*cehandler.CeProducerHandler, err
 	if err != nil {
 		return nil, err
 	}
-	return cehandler.NewProducerHandler(producer, fmt.Sprintf("http://localhost:%v/", sinkPort), 5*time.Second, true), nil
+	httpProtocol, err := cloudevents.NewHTTP() // http.WithShutdownTimeout(5 * time.Second)
+	if err != nil {
+		log.Fatalf("failed to create protocol: %s", err.Error())
+	}
+	ceClient, err := cloudevents.NewClient(httpProtocol)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	return cehandler.NewProducerHandler(producer, ceClient, fmt.Sprintf("http://localhost:%v/", sinkPort), 5*time.Second, true), nil
 }
 
 type SinkServer struct {
