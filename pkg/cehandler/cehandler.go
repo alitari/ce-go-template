@@ -24,9 +24,9 @@ type CeMapperHandler struct {
 }
 
 // NewCeMapperHandler start handling cloudEvents
-func NewCeMapperHandler(transformer CeMapper, ceClient cloudevents.Client, sink string, debug bool) (*CeMapperHandler, error) {
+func NewCeMapperHandler(ceMapper CeMapper, ceClient cloudevents.Client, sink string, debug bool) (*CeMapperHandler, error) {
 	ceh := new(CeMapperHandler)
-	ceh.transformer = transformer
+	ceh.transformer = ceMapper
 	ceh.ceClient = ceClient
 	ceh.sink = sink
 	ceh.debug = debug
