@@ -170,48 +170,6 @@ func TestPredicateEvent(t *testing.T) {
 	}
 }
 
-// func TestCreateEvent(t *testing.T) {
-// 	tests := []struct {
-// 		name        string
-// 		request     *http.Request
-// 		de          cloudevents.Event
-// 		onlyPayload bool
-// 		ceTemplate  string
-// 		wantErr     bool
-// 	}{
-// 		{name: "simple",
-// 			request:     nil,
-// 			ceTemplate:  `{{ eq .httpresponse.body.gender "female" | toString }}`,
-// 			de:          newEventJSON(`{"name": "Peter"}`),
-// 			onlyPayload: true,
-// 			wantErr:     false},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			ct := Newcehttpclienttransformer("", tt.ceTemplate, 5*time.Second, true, tt.onlyPayload, true)
-// 			got, err := ct.CreateEvent(*tt.request)
-// 			if (err != nil) != tt.wantErr {
-// 				t.Errorf("cehttpclienttransformer.CreateEvent error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			want := tt.de
-// 			gotData := map[string]interface{}{}
-// 			got.DataAs(&gotData)
-// 			wantData := map[string]interface{}{}
-// 			want.DataAs(&wantData)
-// 			if !reflect.DeepEqual(gotData, wantData) {
-// 				t.Errorf("cehttpclienttransformer.CreateEvent data not equal:\nactual = '%v'\nwant   = '%v'", string(got.Data()), string(want.Data()))
-// 			}
-// 			if got.Source() != want.Source() {
-// 				t.Errorf("cehttpclienttransformer.CreateEvent source not equal: actual = '%v', want '%v'", got.Source(), want.Source())
-// 			}
-// 			if got.Type() != want.Type() {
-// 				t.Errorf("cehttpclienttransformer.CreateEvent type not equal: actual = %v, want %v", got.Type(), want.Type())
-// 			}
-// 		})
-// 	}
-// }
-
 func TestResponseToMap(t *testing.T) {
 	tests := []struct {
 		name          string
