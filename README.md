@@ -18,15 +18,13 @@ There are 3 kinds of services for transforming a [CloudEvent] with the [go templ
 Input --> **Go-Template for building CloudEvents** --> CloudEvent
 ```
 
-Go-Template transforms an input data structure to a cloudEvent and sends them to an [event sink]. In [knative] a producer can be applied as an event source using a [ContainerSource] or a [Sinkbinding] 
+Go-Template transforms an input data structure to a cloudEvent and sends them to an [event sink]. In [knative] a producer can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
 
-### `ce-go-template-producer`
+| producer name | Input | Description |
+| ------------- | ------| ------------|
+| periodic-producer | void | Sends events frequently based on a configurable time period. See [details](docs/periodic-producer.md)
+| http-server-producer | HTTP-Request | Sends events based on an incoming http request |
 
-This producer has no input. The transformation is triggerd by a constant frequence which is configurable.
-
-### `ce-go-template-http-producer`
-
-In this producer the transformation is triggered by an incoming http request.
 
 ## mappers
 
@@ -63,8 +61,6 @@ CloudEvent --> **Go-Template for building HTTP-Request** --> Send HTTP-Request -
 
 
 ## usage
-
-In order to implement CloudEvent transformations you define a go-template representing a result as a string. For the producer and mapper this result is a [JSON representation of CloudEvent]. The result of the filter is a boolean as string. Services with incoming CloudEvents ( mapper, filter) can evaluate the incoming CloudEvent for creating their result. 
 
 ### example for a mapper go-template
 

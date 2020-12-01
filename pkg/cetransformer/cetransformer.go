@@ -15,15 +15,11 @@ type CloudEventTransformer struct {
 	resultSource string
 }
 
-// NewCloudEventTransformer new instance of CloudEventTransformer ceTemplate,debug, type, source
-func NewCloudEventTransformer(ceTemplate string, debug bool, context ...string) (*CloudEventTransformer, error) {
+// NewCloudEventTransformer new instance of CloudEventTransformer ceTemplate,source, type, debug
+func NewCloudEventTransformer(ceTemplate, resultSource, resultType string, debug bool) (*CloudEventTransformer, error) {
 	cet := new(CloudEventTransformer)
-	if len(context) > 0 {
-		cet.resultType = context[0]
-	}
-	if len(context) > 1 {
-		cet.resultSource = context[1]
-	}
+	cet.resultType = resultType
+	cet.resultSource = resultSource
 
 	transformer, err := transformer.NewTransformer(ceTemplate, nil, debug)
 	if err != nil {

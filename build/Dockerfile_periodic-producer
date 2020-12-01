@@ -1,7 +1,7 @@
 FROM golang:1.14.3-alpine AS builder
 WORKDIR /work
 COPY . /work
-RUN go build -o bin/producer cmd/producer/main.go 
+RUN go build -o bin/producer cmd/periodic-producer/main.go 
 
 FROM alpine:latest
 WORKDIR /root/

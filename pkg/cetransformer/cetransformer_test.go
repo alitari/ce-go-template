@@ -80,12 +80,12 @@ func TestTransformEvent(t *testing.T) {
 			var err error
 			if tt.givenEventType != "" {
 				if tt.givenEventSource != "" {
-					ct, err = NewCloudEventTransformer(tt.givenTemplate, rand.Float32() < 0.5, tt.givenEventType, tt.givenEventSource)
+					ct, err = NewCloudEventTransformer(tt.givenTemplate, tt.givenEventSource, tt.givenEventType, rand.Float32() < 0.5)
 				} else {
-					ct, err = NewCloudEventTransformer(tt.givenTemplate, rand.Float32() < 0.5, tt.givenEventType)
+					ct, err = NewCloudEventTransformer(tt.givenTemplate, tt.givenEventSource, tt.givenEventType, rand.Float32() < 0.5)
 				}
 			} else {
-				ct, err = NewCloudEventTransformer(tt.givenTemplate, rand.Float32() < 0.5)
+				ct, err = NewCloudEventTransformer(tt.givenTemplate, "", "", rand.Float32() < 0.5)
 			}
 			if err != nil {
 				if !tt.thenError {
@@ -168,7 +168,7 @@ func TestPredicateEvent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ct, err := NewCloudEventTransformer(tt.ceTemplate, true)
+			ct, err := NewCloudEventTransformer(tt.ceTemplate, "", "", true)
 			if err != nil {
 				if !tt.wantErr {
 					t.Errorf("CloudEventTransformer.TransformEvent error = %v, wantErr %v", err, tt.wantErr)

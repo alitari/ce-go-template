@@ -54,7 +54,7 @@ func main() {
 	}
 	log.Print(config.info())
 
-	ceTransformer, err := cetransformer.NewCloudEventTransformer(config.CeTemplate, config.Verbose)
+	ceTransformer, err := cetransformer.NewCloudEventTransformer(config.CeTemplate, "", "", config.Verbose)
 	if err != nil {
 		log.Fatalf("failed to create transformer: %s", err.Error())
 	}

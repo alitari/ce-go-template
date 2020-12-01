@@ -40,7 +40,7 @@ func TestCeProducerHandler_SendCe(t *testing.T) {
 		thenWantOutgoingEvent  *cloudevents.Event
 	}{
 		{name: "Happy path ", whenProducerEvent: &outgoingEvent, thenWantOutgoingEvent: &outgoingEvent},
-		{name: "Client send error ", givenCeClientSendError: errors.New("test"), whenProducerEvent: &outgoingEvent, thenWantResult: errors.New("test")},
+		{name: "Client send error ", givenCeClientSendError: errors.New("test"), whenProducerEvent: &outgoingEvent, thenWantResult: errors.New("Failed to send event! error: test")},
 		{name: "Producer error ", givenProducerError: errors.New("test"), whenProducerEvent: &outgoingEvent,
 			thenWantResult: http.NewResult(400, "got error %v while producing event from input : %v", errors.New("test"), input)},
 	}

@@ -2,11 +2,12 @@ package cehandler
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/cloudevents/sdk-go/v2/protocol"
 	"github.com/cloudevents/sdk-go/v2/protocol/http"
 )
 
@@ -24,27 +25,14 @@ type CeProducerHandler struct {
 	timeout  time.Duration
 }
 
-// httpProtocol, err := cloudevents.NewHTTP(http.WithShutdownTimeout(timeout))
-// if err != nil {
-// 	log.Fatalf("failed to create protocol: %s", err.Error())
-// }
-// ceClient, err := cloudevents.NewClient(httpProtocol)
-// if err != nil {
-// 	log.Fatal(err.Error())
-// }
 // NewProducerHandler create new instance
 func NewProducerHandler(producer CeProducer, ceClient cloudevents.Client, sink string, timeout time.Duration, debug bool) *CeProducerHandler {
-	cph := new(CeProducerHandler)
-	cph.producer = producer
-	cph.ceClient = ceClient
-	cph.sink = sink
-	cph.timeout = timeout
-	cph.debug = debug
-	return cph
+	cph := CeProducerHandler{producer: producer, ceClient: ceClient, sink: sink, timeout: timeout, debug: debug}
+	return &cph
 }
 
 // SendCe producer and send cloudEvent
-func (cph *CeProducerHandler) SendCe(input interface{}) protocol.Result {
+func (cph *CeProducerHandler) SendCe(input interface{}) error {
 	destEvent, err := cph.producer.CreateEvent(input)
 	if err != nil {
 		return http.NewResult(400, "got error %v while producing event from input : %v", err, input)
@@ -56,5 +44,14 @@ func (cph *CeProducerHandler) SendCe(input interface{}) protocol.Result {
 	defer cancel()
 	sendContext := cloudevents.ContextWithTarget(timeoutCtx, cph.sink)
 	result := cph.ceClient.Send(sendContext, *destEvent)
-	return result
+	if !strings.HasPrefix(result.Error(), "20") {
+		return fmt.Errorf("Failed to send event! error: %v", result.Error())
+	}
+	if cloudevents.IsUndelivered(result) {
+		return fmt.Errorf("Event was not delivered: %v", result)
+	}
+	if cph.debug {
+		log.Printf("Event successfully delivered: %s", result.Error())
+	}
+	return nil
 }
