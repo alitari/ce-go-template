@@ -20,8 +20,8 @@ type Configuration struct {
 	CeSource   string        `split_words:"true" default:"https://github.com/alitari/ce-go-template"`
 	CeType     string        `split_words:"true" default:"com.github.alitari.ce-go-template.periodic-producer"`
 	Sink       string        `envconfig:"K_SINK"`
-	Period     time.Duration `default:"1000ms"`
 	Timeout    time.Duration `default:"1000ms"`
+	Period     time.Duration `default:"1000ms"`
 }
 
 func (c Configuration) info() string {
@@ -33,8 +33,8 @@ Period: %v
 Timeout: %v
 Sink: '%v'
 CeTemplate: '%v'
-cloudEvent source: %s
-cloudEvent type: %s`, c.Verbose, c.Period, c.Timeout, c.Sink, c.CeTemplate, c.CeSource, c.CeType)
+CloudEvent source: %s
+CloudEvent type: %s`, c.Verbose, c.Period, c.Timeout, c.Sink, c.CeTemplate, c.CeSource, c.CeType)
 }
 
 func main() {

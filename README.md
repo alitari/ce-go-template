@@ -23,7 +23,7 @@ Go-Template transforms an input data structure to a cloudEvent and sends them to
 | producer name | Input | Description |
 | ------------- | ------| ------------|
 | periodic-producer | void | Sends events frequently based on a configurable time period. See [details](docs/periodic-producer.md)
-| http-server-producer | HTTP-Request | Sends events based on an incoming http request |
+| http-server-producer | HTTP-Request | Sends events based on an incoming http request. See [details](docs/http-server-producer.md) |
 
 
 ## mappers
