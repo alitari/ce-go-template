@@ -41,7 +41,7 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	transformer, err = cehttpclienttransformer.NewCeHTTPClientTransformer(config.HTTPTemplate, config.CeTemplate, httpSenderTimeout, config.HTTPJsonBody, true, config.Verbose)
+	transformer, err = cehttpclienttransformer.NewCeHTTPClientTransformer(config.HTTPTemplate, config.CeTemplate, httpSenderTimeout, config.HTTPJsonBody, config.Verbose)
 	if err != nil {
 		log.Fatalf("failed to create CeHTTPClientTransformer: %s", err.Error())
 	}

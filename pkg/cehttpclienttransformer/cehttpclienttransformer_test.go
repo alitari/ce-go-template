@@ -92,7 +92,7 @@ content-type: application/json
 				t.Errorf("unexpected HTTP-Protocol, actual = '%s', want = '%s'", protocol, tt.thenWantHTTPProtocol)
 				return nil, errors.New("unexpected http-protocol")
 			}
-			ct, err := ceHTTPClientTransformer(senderCreator, tt.givenHTTPTemplate, tt.givenCeTemplate, 5*time.Second, true, true, true)
+			ct, err := ceHTTPClientTransformer(senderCreator, tt.givenHTTPTemplate, tt.givenCeTemplate, 5*time.Second, true, true)
 			if (err != nil) != tt.thenWantErr {
 				t.Errorf("cehttpclienttransformer error = %v, wantErr %v", err, tt.thenWantErr)
 				return
@@ -153,7 +153,7 @@ func TestPredicateEvent(t *testing.T) {
 				t.Errorf("unexpected HTTP-Protocol, actual = '%s', want = '%s'", protocol, tt.thenWantHTTPProtocol)
 				return nil, errors.New("unexpected http-protocol")
 			}
-			ct, err := ceHTTPClientTransformer(senderCreator, tt.givenHTTPTemplate, tt.givenCeTemplate, 5*time.Second, true, true, true)
+			ct, err := ceHTTPClientTransformer(senderCreator, tt.givenHTTPTemplate, tt.givenCeTemplate, 5*time.Second, true, true)
 			if (err != nil) != tt.thenWantErr {
 				t.Errorf("cehttpclienttransformer error = %v, wantErr %v", err, tt.thenWantErr)
 				return

@@ -23,38 +23,39 @@ const (
 type Configuration struct {
 	Verbose    bool   `default:"true"`
 	CeTemplate string `split_words:"true" default:"{{ toJson .data }}"`
-	CeSource   string `split_words:"true"`
-	CeType     string `split_words:"true"`
+	CeSource   string `split_words:"true" default:"https://github.com/alitari/ce-go-template"`
+	CeType     string `split_words:"true" default:"com.github.alitari.ce-go-template.mapper"`
 	CePort     int    `split_words:"true" default:"8080"`
 	Sink       string `envconfig:"K_SINK"`
 }
 
 func (c Configuration) mode() Mode {
-	var mode Mode
 	if c.Sink == "" {
-		mode = reply
-	} else {
-		mode = send
+		return reply
 	}
-	return mode
+	return send
 }
 
 func (c Configuration) info() string {
-	return fmt.Sprintf("Configuration:\n====================================\nSink: %v (using %s)\nVerbose: %v\ncloudEvent source: %s\ncloudEvent type: %s\nServing on Port: %v\nCeTemplate: '%v'", c.Sink, c.mode(), c.Verbose, c.CeSource, c.CeType, c.CePort, c.CeTemplate)
+	return fmt.Sprintf(`
+Configuration:
+====================================
+Verbose: %v
+Listening on port: %v
+Sink: %v (using %s)
+cloudEvent source: '%s'
+cloudEvent type: '%s'
+CeTemplate: '%v'`, c.Verbose, c.CePort, c.Sink, c.mode(), c.CeSource, c.CeType, c.CeTemplate)
 }
 
-var ceTransformer *cetransformer.CloudEventTransformer
-var ceClient cloudevents.Client = nil
-var config Configuration
-
 func main() {
-	config = Configuration{}
+	config := Configuration{}
 	if err := envconfig.Process("", &config); err != nil {
 		log.Fatal(err)
 	}
 	log.Print(config.info())
 
-	ceTransformer, err := cetransformer.NewCloudEventTransformer(config.CeTemplate, "", "", config.Verbose)
+	ceTransformer, err := cetransformer.NewCloudEventTransformer(config.CeTemplate, config.CeSource, config.CeType, config.Verbose)
 	if err != nil {
 		log.Fatalf("failed to create transformer: %s", err.Error())
 	}
@@ -64,7 +65,7 @@ func main() {
 		log.Fatalf("failed to create protocol: %s", err.Error())
 	}
 
-	ceClient, err = cloudevents.NewClient(httpProtocol)
+	ceClient, err := cloudevents.NewClient(httpProtocol)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

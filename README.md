@@ -28,19 +28,24 @@ Go-Template transforms an input data structure to a cloudEvent and sends them to
 
 ## mappers
 
-A mapper transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either sent to the sink ( *send mode*), or is the payload of the http response (*reply mode*) 
+A mapper transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either sent to the sink ( *send mode*), or is the payload of the http response (*reply mode*)
 
-### `ce-go-template-mapper`
-
-```txt
-CloudEvent --> **Go-Template for building CloudEvent** --> CloudEvent
+```plantuml
+@startuml
+EventSource -> EventMapper: cloud event
+hnote over EventMapper : transformation
+EventMapper --> EventSource: transformed cloud event in respoonse
+note right: if no `K_SINK`
+EventMapper -> EventSink: transformed cloud event
+note left: if `K_SINK` defined
+@enduml
 ```
 
-### `ce-go-template-http-mapper`
+| mapper name | Description |
+| ------------- | ------------|
+| ce-go-template-mapper | Transforms events based on a go-template. See [details](docs/ce-go-template-mapper.md)|
+| ce-go-template-http-client-mapper | Transforms an event to HTTP-Request and sends it to a HTTP server. The response is transformed to the outgoing cloud event. See [details](docs/ce-go-template-http-client-mapper.md) |
 
-```txt
-CloudEvent --> **Go-Template for building HTTP-Request** --> Send HTTP-Request --> HTTP-Response -> **Go-Template for building CloudEvent** --> CloudEvent 
-```
 
 ## filters
 
