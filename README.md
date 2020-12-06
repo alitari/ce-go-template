@@ -19,13 +19,9 @@ We can group the services according to their role in an event processing chain:
 
 ## producers
 
-```plantuml
-@startuml
-InputSource -> EventProducer: input
-hnote over EventProducer : go-template transformation
-EventProducer -> EventSink: cloud event
-@enduml
-```
+
+
+![producers](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/producers.iuml)
 
 Go-Template transforms an input data structure to a cloudEvent and sends them to an [event sink]. In [knative] a producer can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
 

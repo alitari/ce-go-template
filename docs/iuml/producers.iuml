@@ -1,0 +1,5 @@
+@startuml producers
+InputSource -> EventProducer: input
+hnote over EventProducer : go-template transformation
+EventProducer -> EventSink: cloud event
+@enduml
