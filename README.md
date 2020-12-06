@@ -83,32 +83,6 @@ note right: if transformation is not "true"
 | ce-go-template-http-client-filter | Transforms an event to HTTP-Request and sends it to a HTTP server. The response is transformed to the outgoing cloud event. See [details](docs/ce-go-template-http-client-mapper.md) |
 
 
-
-### `ce-go-template-http-client-filter`
-
-```txt
-CloudEvent --> **Go-Template for building HTTP-Request** --> Send HTTP-Request --> HTTP-Response --> **Go-Template for building a boolean** --> CloudEvent if true, nothing otherwise
-```
-
-
-
-
-
-
-
-
-### filter
-
-#### filter with external services
-
-```bash
-HTTP_TEMPLATE="GET https://api.genderize.io?name={{ .data.name }} HTTP/1.1"$'\n'"content-type: application/json"$'\n'$'\n' CE_TEMPLATE='{{ eq .httpresponse.body.gender "female" | toString }}' go run cmd/http-filter/main.go
-
-## with male surname you will get 204
-http POST localhost:8080 "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: example" "ce-id: 123-abc" name=Sabine
-```
-
-
 ## deployment options in [knative]
 
 ### event producer as container source
@@ -128,7 +102,7 @@ kn service create event-display --image gcr.io/knative-releases/knative.dev/even
 # create the sink binding
 kubectl apply -f deployments/producer-display-sinkbinding.yaml
 # create producer service
-kubectl create deployment event-producer --image=docker.io/alitari/ce-go-template-producer
+kubectl create deployment event-producer --image=docker.io/alitari/ce-go-template-periodic-producer
 ```
 
 ### event mapper in sequence
