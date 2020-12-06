@@ -1,0 +1,10 @@
+@startuml filters
+EventSource -> EventFilter: cloud event
+hnote over EventFilter : go-template transformation
+EventFilter --> EventSource:  cloud event in response
+note right: if transformation is "true"
+
+EventFilter --> EventSource:  no content in response
+note right: if transformation is not "true"
+
+@enduml

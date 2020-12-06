@@ -1,0 +1,6 @@
+@startuml producers
+HTTPClient -> HTTPServerProducer: http request
+hnote over HTTPServerProducer : go-template transformation request to event
+HTTPServerProducer --> HTTPClient: no content (204)
+HTTPServerProducer -> EventSink: cloud event
+@enduml

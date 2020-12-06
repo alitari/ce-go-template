@@ -1,5 +1,7 @@
 # http-server-producer
 
+![http-server-producer](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/http-server-producer.iuml)
+
 ## configuration
 
 | Name | Default | Description |

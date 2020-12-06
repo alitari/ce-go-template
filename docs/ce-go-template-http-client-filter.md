@@ -1,20 +1,6 @@
 # ce-go-template-http-client-filter
 
-```plantuml
-@startuml
-EventSource -> "ce-go-template-http-client-filter": cloud event
-hnote over "ce-go-template-http-client-filter" : transformation based on `REQUEST_TEMPLATE`
-"ce-go-template-http-client-filter" -> "HTTP-Server": http request
-"HTTP-Server" --> "ce-go-template-http-client-filter": http response
-hnote over "ce-go-template-http-client-filter" : transformation to predicate based on `RESPONSE_TEMPLATE`
-"ce-go-template-http-client-filter" --> EventSource: original cloud event in response
-note right: if predicate is "true"`
-"ce-go-template-http-client-filter" --> EventSource: no content
-note right: if predicate is not "true"`
-
-@enduml
-```
-
+![ce-go-template-http-client-filter](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/ce-go-template-http-client-filter.iuml)
 
 ## configuration
 

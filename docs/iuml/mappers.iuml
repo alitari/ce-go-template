@@ -1,0 +1,8 @@
+@startuml mappers
+EventSource -> EventMapper: cloud event
+hnote over EventMapper : go-template transformation
+EventMapper --> EventSource: transformed cloud event in respoonse
+note right: if no `K_SINK`
+EventMapper -> EventSink: transformed cloud event
+note left: if `K_SINK` defined
+@enduml

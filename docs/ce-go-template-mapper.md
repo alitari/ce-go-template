@@ -1,16 +1,6 @@
 # ce-go-template-mapper
 
-```plantuml
-@startuml
-EventSource -> "ce-go-template-mapper": cloud event
-hnote over "ce-go-template-mapper" : transformation based on CE_TEMPLATE
-"ce-go-template-mapper" --> EventSource: transformed cloud event in respoonse
-note right: if no `K_SINK`
-"ce-go-template-mapper" -> EventSink: transformed cloud event
-note left: if `K_SINK` defined
-
-@enduml
-```
+![ce-go-template-mapper](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/ce-go-template-mapper.iuml)
 
 ## configuration
 

@@ -19,8 +19,6 @@ We can group the services according to their role in an event processing chain:
 
 ## producers
 
-
-
 ![producers](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/producers.iuml)
 
 Go-Template transforms an input data structure to a cloudEvent and sends them to an [event sink]. In [knative] a producer can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
@@ -35,16 +33,7 @@ Go-Template transforms an input data structure to a cloudEvent and sends them to
 
 A mapper transforms an incoming CloudEvent to an outgoing CloudEvent. Depending whether an [event sink] is present, the new event is either sent to the sink ( *send mode*), or is the payload of the http response (*reply mode*)
 
-```plantuml
-@startuml
-EventSource -> EventMapper: cloud event
-hnote over EventMapper : go-template transformation
-EventMapper --> EventSource: transformed cloud event in respoonse
-note right: if no `K_SINK`
-EventMapper -> EventSink: transformed cloud event
-note left: if `K_SINK` defined
-@enduml
-```
+![mappers](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/mappers.iuml)
 
 | mapper name | Description |
 | ------------- | ------------|
@@ -56,18 +45,7 @@ note left: if `K_SINK` defined
 
 A filter replies with the incoming CloudEvent, if a predicate string built by a go-template resolves to "true". Otherwise the response has no content. In [knative] a filter can be applied in [Flows] like [Parallel]
 
-```plantuml
-@startuml
-EventSource -> EventFilter: cloud event
-hnote over EventFilter : go-template transformation
-EventFilter --> EventSource:  cloud event in response
-note right: if transformation is "true"
-
-EventFilter --> EventSource:  no content in response
-note right: if transformation is not "true"
-
-@enduml
-```
+![filters](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/filters.iuml)
 
 | filter name | Description |
 | ------------- | ------------|
@@ -123,6 +101,11 @@ kn service create event-mapper --image=docker.io/alitari/ce-go-template-mapper -
 MAPPER_URL=$(kubectl get ksvc event-mapper -o=json | jq -r .status.url)
 http POST $MAPPER_URL "content-type: application/json" "ce-specversion: 1.0" "ce-source: http-command" "ce-type: http.demo" "ce-id: 123-abc" name=Hase
 ```
+
+## development
+
+See [development](./docs/development.md)
+
 
 [CloudEvent]: https://github.com/cloudevents/spec
 [knative]: https://knative.dev/

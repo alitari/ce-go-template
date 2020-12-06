@@ -1,19 +1,6 @@
 # ce-go-template-http-client-mapper
 
-```plantuml
-@startuml
-EventSource -> "ce-go-template-http-client-mapper": cloud event
-hnote over "ce-go-template-http-client-mapper" : transformation based on `REQUEST_TEMPLATE`
-"ce-go-template-http-client-mapper" -> "HTTP-Server": http request
-"HTTP-Server" --> "ce-go-template-http-client-mapper": http response
-hnote over "ce-go-template-http-client-mapper" : transformation based on `RESPONSE_TEMPLATE`
-"ce-go-template-http-client-mapper" --> EventSource: transformed cloud event in response
-note right: if no `K_SINK`
-"ce-go-template-http-client-mapper" -> EventSink: transformed cloud event
-note left: if `K_SINK` defined
-
-@enduml
-```
+![ce-go-template-http-client-mapper](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/alitari/ce-go-template/master/docs/iuml/ce-go-template-http-client-mapper.iuml)
 
 ## configuration
 
