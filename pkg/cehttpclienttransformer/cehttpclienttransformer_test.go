@@ -49,7 +49,7 @@ func TestTransformEvent(t *testing.T) {
 			thenWantHTTPProtocol: `GET http://localhost:8080/get HTTP/1.1
 
 `,
-			thenWantOutgoingEvent: cetransformer.NewEventWithJSONStringData(`{ "responseStatus": "200 OK"}`),
+			thenWantOutgoingEvent: cetransformer.NewEventWithJSONStringData(`{ "responseStatus": "200 OK"}`,"",""),
 			thenWantErr:           false},
 
 		{name: "Post constant template",
@@ -64,7 +64,7 @@ content-type: application/json
 content-type: application/json
 
 { "name": "Alex" }`,
-			thenWantOutgoingEvent: cetransformer.NewEventWithJSONStringData(`{ "responseStatus": "200 OK", "responseBody": { "gender": "male", "name": "Alex" }}`),
+			thenWantOutgoingEvent: cetransformer.NewEventWithJSONStringData(`{ "responseStatus": "200 OK", "responseBody": { "gender": "male", "name": "Alex" }}`,"",""),
 			thenWantErr:           false},
 
 		{name: "Post template",
@@ -79,7 +79,7 @@ content-type: application/json
 content-type: application/json
 
 { "gender": "male" }`,
-			thenWantOutgoingEvent: cetransformer.NewEventWithJSONStringData(`{ "person": { "sex": "male", "name": "Alex" } }`),
+			thenWantOutgoingEvent: cetransformer.NewEventWithJSONStringData(`{ "person": { "sex": "male", "name": "Alex" } }`,"",""),
 			thenWantErr:           false},
 	}
 	for _, tt := range tests {

@@ -44,14 +44,17 @@ func (cph *CeProducerHandler) SendCe(input interface{}) error {
 	defer cancel()
 	sendContext := cloudevents.ContextWithTarget(timeoutCtx, cph.sink)
 	result := cph.ceClient.Send(sendContext, *destEvent)
-	if !strings.HasPrefix(result.Error(), "20") {
-		return fmt.Errorf("Failed to send event! error: %v", result.Error())
-	}
-	if cloudevents.IsUndelivered(result) {
-		return fmt.Errorf("Event was not delivered: %v", result)
-	}
-	if cph.debug {
-		log.Printf("Event successfully delivered: %s", result.Error())
+	if result != nil {
+		if !strings.HasPrefix(result.Error(), "20") {
+			return fmt.Errorf("Failed to send event! error: %v", result.Error())
+		}
+		if cloudevents.IsUndelivered(result) {
+			return fmt.Errorf("Event was not delivered: %v", result)
+		}
+		if cph.debug {
+			log.Printf("Event successfully delivered: %s", result.Error())
+		}
 	}
 	return nil
+	
 }
