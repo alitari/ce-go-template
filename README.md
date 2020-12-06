@@ -27,10 +27,6 @@ EventProducer -> EventSink: cloud event
 @enduml
 ```
 
-```txt
-Input --> **Go-Template for building CloudEvents** --> CloudEvent
-```
-
 Go-Template transforms an input data structure to a cloudEvent and sends them to an [event sink]. In [knative] a producer can be applied as an event source using a [ContainerSource] or a [Sinkbinding]
 
 | producer name | Input | Description |
