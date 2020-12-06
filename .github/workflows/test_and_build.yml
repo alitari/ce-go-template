@@ -39,11 +39,9 @@ jobs:
         flags: unittests
         name: cetransformer
 
-    - name: Build mapper
-      run: go build -o bin/mapper cmd/mapper/main.go
-
-    - name: Build producer
-      run: go build -o bin/producer cmd/producer/main.go
-
-    - name: Build filter
-      run: go build -o bin/filter cmd/filter/main.go
+    - name: Build all
+      run: |
+            for name in "periodic-producer" "http-server-producer" "mapper" "http-client-mapper" "filter" "http-client-filter"
+            do 
+              go build -o bin/${name} cmd/${name}/main.go
+            done
