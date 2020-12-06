@@ -30,6 +30,40 @@ jobs:
           username: alitari
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
       -
+        name: Build and push periodic-producer
+        id: docker_build_periodic-producer
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: |
+            docker.io/alitari/ce-go-template-periodic-producer:latest
+            docker.io/alitari/ce-go-template-periodic-producer:${{ env.RELEASE_VERSION }}
+          context: .
+          file: ./build/Dockerfile
+          build-args: |
+            main_path=cmd/periodic-producer/main.go
+          platforms: linux/amd64
+      -
+        name: Image digest periodic-producer
+        run: echo ${{ steps.docker_build_periodic-producer.outputs.digest }}
+      -
+        name: Build and push http-server-producer
+        id: docker_build_http-server-producer
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: |
+            docker.io/alitari/ce-go-template-http-server-producer:latest
+            docker.io/alitari/ce-go-template-http-server-producer:${{ env.RELEASE_VERSION }}
+          context: .
+          file: ./build/Dockerfile
+          build-args: |
+            main_path=cmd/http-server-producer/main.go
+          platforms: linux/amd64
+      -
+        name: Image digest http-server-producer
+        run: echo ${{ steps.docker_build_http-server-producer.outputs.digest }}
+      -
         name: Build and push mapper
         id: docker_build_mapper
         uses: docker/build-push-action@v2
@@ -39,27 +73,30 @@ jobs:
             docker.io/alitari/ce-go-template-mapper:latest
             docker.io/alitari/ce-go-template-mapper:${{ env.RELEASE_VERSION }}
           context: .
-          file: ./build/Dockerfile_mapper
+          file: ./build/Dockerfile
+          build-args: |
+            main_path=cmd/mapper/main.go
           platforms: linux/amd64
       -
         name: Image digest mapper
         run: echo ${{ steps.docker_build_mapper.outputs.digest }}
-
       -
-        name: Build and push producer
-        id: docker_build_producer
+        name: Build and push http-client-mapper
+        id: docker_build_http-client-mapper
         uses: docker/build-push-action@v2
         with:
           push: true
           tags: |
-            docker.io/alitari/ce-go-template-producer:latest
-            docker.io/alitari/ce-go-template-producer:${{ env.RELEASE_VERSION }}
+            docker.io/alitari/ce-go-template-http-client-mapper:latest
+            docker.io/alitari/ce-go-template-http-client-mapper:${{ env.RELEASE_VERSION }}
           context: .
-          file: ./build/Dockerfile_producer
+          file: ./build/Dockerfile
+          build-args: |
+            main_path=cmd/http-client-mapper/main.go
           platforms: linux/amd64
       -
-        name: Image digest producer
-        run: echo ${{ steps.docker_build_producer.outputs.digest }}
+        name: Image digest http-client-mapper
+        run: echo ${{ steps.docker_build_http-client-mapper.outputs.digest }}
       -
         name: Build and push filter
         id: docker_build_filter
@@ -70,8 +107,27 @@ jobs:
             docker.io/alitari/ce-go-template-filter:latest
             docker.io/alitari/ce-go-template-filter:${{ env.RELEASE_VERSION }}
           context: .
-          file: ./build/Dockerfile_filter
+          file: ./build/Dockerfile
+          build-args: |
+            main_path=cmd/filter/main.go
           platforms: linux/amd64
       -
         name: Image digest filter
         run: echo ${{ steps.docker_build_filter.outputs.digest }}
+      -
+        name: Build and push http-client-filter
+        id: docker_build_http-client-filter
+        uses: docker/build-push-action@v2
+        with:
+          push: true
+          tags: |
+            docker.io/alitari/ce-go-template-http-client-filter:latest
+            docker.io/alitari/ce-go-template-http-client-filter:${{ env.RELEASE_VERSION }}
+          context: .
+          file: ./build/Dockerfile
+          build-args: |
+            main_path=cmd/http-client-filter/main.go
+          platforms: linux/amd64
+      -
+        name: Image digest filter
+        run: echo ${{ steps.docker_build_http-client-filter.outputs.digest }}

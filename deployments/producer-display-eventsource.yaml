@@ -6,7 +6,7 @@ spec:
   template:
     spec:
       containers:
-        - image: docker.io/alitari/ce-go-template-producer
+        - image: docker.io/alitari/ce-go-template-periodic-producer
           name: ce-go-template-producer
           # env:
           #   - name: CE_TEMPLATE
