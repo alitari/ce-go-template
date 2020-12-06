@@ -40,6 +40,7 @@ func (cph *CeFilterHandler) HandleCe(ctx context.Context, sourceEvent cloudevent
 		return nil, http.NewResult(400, "got error %v while transforming event: %v", err, sourceEvent)
 	}
 	if reply {
+		
 		return &sourceEvent, nil
 	}
 	return nil, http.NewResult(204, "predicate is false")

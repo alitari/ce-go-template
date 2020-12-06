@@ -19,15 +19,15 @@ type Configuration struct {
 }
 
 func (c Configuration) info() string {
-	return fmt.Sprintf("Configuration:\n====================================\nVerbose: %v\nServing on Port: %v\nCeTemplate: '%v'", c.Verbose, c.CePort, c.CeTemplate)
+	return fmt.Sprintf(`Configuration:
+====================================
+Verbose: %v
+Listening on Port: %v
+CeTemplate: '%v'`, c.Verbose, c.CePort, c.CeTemplate)
 }
 
-var ceTransformer *cetransformer.CloudEventTransformer
-var ceClient cloudevents.Client = nil
-var config Configuration
-
 func main() {
-	config = Configuration{}
+	config := Configuration{}
 	if err := envconfig.Process("", &config); err != nil {
 		log.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func main() {
 		log.Fatalf("failed to create protocol: %s", err.Error())
 	}
 
-	ceClient, err = cloudevents.NewClient(httpProtocol)
+	ceClient, err := cloudevents.NewClient(httpProtocol)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

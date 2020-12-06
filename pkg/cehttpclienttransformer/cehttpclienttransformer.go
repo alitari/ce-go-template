@@ -20,8 +20,8 @@ type HTTPSender interface {
 // Config bla
 type Config struct {
 	SenderCreator func(string, time.Duration, bool) (HTTPSender, error)
-	HTTPTemplate  string
-	CeTemplate    string
+	RequestTemplate  string
+	ResponseTemplate    string
 	Timeout       time.Duration
 	JSONBody      bool
 	OnlyPayload   bool
@@ -38,21 +38,21 @@ type CeHTTPClientTransformer struct {
 }
 
 // NewCeHTTPClientTransformer bla
-func NewCeHTTPClientTransformer(httpTemplate string, ceTemplate string, timeout time.Duration, jsonBody bool, debug bool) (*CeHTTPClientTransformer, error) {
+func NewCeHTTPClientTransformer(requestTemplate string, responseTemplate string, timeout time.Duration, jsonBody bool, debug bool) (*CeHTTPClientTransformer, error) {
 	return ceHTTPClientTransformer(func(protocol string, timeOut time.Duration, debug bool) (HTTPSender, error) {
 		return NewHTTPProtocolSender(protocol, timeOut, debug)
-	}, httpTemplate, ceTemplate, timeout, jsonBody, debug)
+	}, requestTemplate, responseTemplate, timeout, jsonBody, debug)
 }
 
-func ceHTTPClientTransformer(senderCreator func(string, time.Duration, bool) (HTTPSender, error), httpTemplate string, ceTemplate string, timeout time.Duration, jsonBody bool, debug bool) (*CeHTTPClientTransformer, error) {
+func ceHTTPClientTransformer(senderCreator func(string, time.Duration, bool) (HTTPSender, error), requestTemplate string, responseTemplate string, timeout time.Duration, jsonBody bool, debug bool) (*CeHTTPClientTransformer, error) {
 	cht := new(CeHTTPClientTransformer)
-	cht.config = Config{SenderCreator: senderCreator, HTTPTemplate: httpTemplate, CeTemplate: ceTemplate, Timeout: timeout, JSONBody: jsonBody, Debug: debug}
-	httpTransformer, err := transformer.NewTransformer(cht.config.HTTPTemplate, nil, cht.config.Debug)
+	cht.config = Config{SenderCreator: senderCreator, RequestTemplate: requestTemplate, ResponseTemplate: responseTemplate, Timeout: timeout, JSONBody: jsonBody, Debug: debug}
+	httpTransformer, err := transformer.NewTransformer(cht.config.RequestTemplate, nil, cht.config.Debug)
 	if err != nil {
 		return nil, err
 	}
 	cht.httpTransformer = httpTransformer
-	ceTransformer, err := transformer.NewTransformer(cht.config.CeTemplate, nil, cht.config.Debug)
+	ceTransformer, err := transformer.NewTransformer(cht.config.ResponseTemplate, nil, cht.config.Debug)
 	if err != nil {
 		return nil, err
 	}

@@ -62,15 +62,29 @@ note left: if `K_SINK` defined
 
 ## filters
 
-A filter replies with the incoming CloudEvent, if a predicate built by a go-template resolves to true. Otherwise the response has no content. In [knative] a filter can be applied in [Flows] like [Parallel]
+A filter replies with the incoming CloudEvent, if a predicate string built by a go-template resolves to "true". Otherwise the response has no content. In [knative] a filter can be applied in [Flows] like [Parallel]
 
-### `ce-go-template-filter`
+```plantuml
+@startuml
+EventSource -> EventFilter: cloud event
+hnote over EventFilter : go-template transformation
+EventFilter --> EventSource:  cloud event in response
+note right: if transformation is "true"
 
-```txt
-CloudEvent --> **Go-Template for building a boolean** --> CloudEvent if true, nothing otherwise
+EventFilter --> EventSource:  no content in response
+note right: if transformation is not "true"
+
+@enduml
 ```
 
-### `ce-go-template-http-filter`
+| filter name | Description |
+| ------------- | ------------|
+| ce-go-template-filter | Transforms events to a predicate string based on a go-template. See [details](docs/ce-go-template-filter.md)|
+| ce-go-template-http-client-filter | Transforms an event to HTTP-Request and sends it to a HTTP server. The response is transformed to the outgoing cloud event. See [details](docs/ce-go-template-http-client-mapper.md) |
+
+
+
+### `ce-go-template-http-client-filter`
 
 ```txt
 CloudEvent --> **Go-Template for building HTTP-Request** --> Send HTTP-Request --> HTTP-Response --> **Go-Template for building a boolean** --> CloudEvent if true, nothing otherwise
